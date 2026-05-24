@@ -6,6 +6,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -84,6 +86,9 @@ fun HomeScreen(
     var canvasWidth by remember { mutableStateOf(0f) }
     var canvasHeight by remember { mutableStateOf(0f) }
 
+    // Bottom Sheet State
+    var selectedStreakForMenu by remember { mutableStateOf<Streak?>(null) }
+
     LaunchedEffect(triggerConfetti) {
         if (triggerConfetti) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -131,7 +136,7 @@ fun HomeScreen(
                 confettiParticles = confettiParticles.mapNotNull { p ->
                     val newAlpha = if (progress < fadeStart) 1f
                     else (1f - (progress - fadeStart) / (1f - fadeStart)).coerceAtLeast(0f)
-                    if (newAlpha <= 0.01f || p.y > canvasHeight + 100f) null
+                    if (newAlpha <= 0.01f || (canvasHeight > 0f && p.y > canvasHeight + 100f)) null
                     else p.copy(
                         x = p.x + p.vx,
                         y = p.y + p.vy,
@@ -466,9 +471,7 @@ fun HomeScreen(
                                         }
                                     },
                                     onLongClick = { onNavigateToEdit(streak.id) },
-                                    onPause = { viewModel.togglePauseStreak(streak) },
-                                    onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                    onDelete = { viewModel.deleteStreak(streak) }
+                                    onOptionsClick = { selectedStreakForMenu = streak }
                                 )
                             }
                         }
@@ -497,9 +500,7 @@ fun HomeScreen(
                                             }
                                         },
                                         onLongClick = { onNavigateToEdit(streak.id) },
-                                        onPause = { viewModel.togglePauseStreak(streak) },
-                                        onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                        onDelete = { viewModel.deleteStreak(streak) }
+                                        onOptionsClick = { selectedStreakForMenu = streak }
                                     )
                                 }
                             } else {
@@ -517,9 +518,7 @@ fun HomeScreen(
                                                 triggerConfetti = true
                                             },
                                             onLongClick = { onNavigateToEdit(streak.id) },
-                                            onPause = { viewModel.togglePauseStreak(streak) },
-                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                            onDelete = { viewModel.deleteStreak(streak) }
+                                            onOptionsClick = { selectedStreakForMenu = streak }
                                         )
                                     }
                                 }
@@ -535,9 +534,7 @@ fun HomeScreen(
                                             isCompletedToday = true,
                                             onClick = { viewModel.completeStreak(streak.id) },
                                             onLongClick = { onNavigateToEdit(streak.id) },
-                                            onPause = { viewModel.togglePauseStreak(streak) },
-                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                            onDelete = { viewModel.deleteStreak(streak) }
+                                            onOptionsClick = { selectedStreakForMenu = streak }
                                         )
                                     }
                                 }
@@ -559,9 +556,7 @@ fun HomeScreen(
                                                 triggerConfetti = true
                                             },
                                             onLongClick = { onNavigateToEdit(streak.id) },
-                                            onPause = { viewModel.togglePauseStreak(streak) },
-                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                            onDelete = { viewModel.deleteStreak(streak) }
+                                            onOptionsClick = { selectedStreakForMenu = streak }
                                         )
                                     }
                                 }
@@ -572,34 +567,140 @@ fun HomeScreen(
             }
 
             // Confetti Overlay Canvas
-            if (confettiParticles.isNotEmpty()) {
-                Canvas(modifier = Modifier
-                    .fillMaxSize()
-                    .onGloballyPositioned { coords ->
-                        canvasWidth = coords.size.width.toFloat()
-                        canvasHeight = coords.size.height.toFloat()
+            Canvas(modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coords ->
+                    canvasWidth = coords.size.width.toFloat()
+                    canvasHeight = coords.size.height.toFloat()
+                }
+            ) {
+                confettiParticles.forEach { p ->
+                    rotate(p.angle, pivot = Offset(p.x, p.y)) {
+                        when (p.shape) {
+                            ParticleShape.RECT -> drawRect(
+                                color = p.color.copy(alpha = p.alpha),
+                                topLeft = Offset(p.x - p.size / 2f, p.y - p.size / 4f),
+                                size = Size(p.size, p.size / 2f)
+                            )
+                            ParticleShape.CIRCLE -> drawCircle(
+                                color = p.color.copy(alpha = p.alpha),
+                                radius = p.size / 2.5f,
+                                center = Offset(p.x, p.y)
+                            )
+                            ParticleShape.RIBBON -> drawRect(
+                                color = p.color.copy(alpha = p.alpha),
+                                topLeft = Offset(p.x - p.size * 0.75f, p.y - p.size / 6f),
+                                size = Size(p.size * 1.5f, p.size / 3f)
+                            )
+                        }
                     }
+                }
+            }
+
+            // Streak Options Bottom Sheet
+            if (selectedStreakForMenu != null) {
+                val streak = selectedStreakForMenu!!
+                ModalBottomSheet(
+                    onDismissRequest = { selectedStreakForMenu = null },
+                    sheetState = rememberModalBottomSheetState(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
-                    confettiParticles.forEach { p ->
-                        rotate(p.angle, pivot = Offset(p.x, p.y)) {
-                            when (p.shape) {
-                                ParticleShape.RECT -> drawRect(
-                                    color = p.color.copy(alpha = p.alpha),
-                                    topLeft = Offset(p.x - p.size / 2f, p.y - p.size / 4f),
-                                    size = Size(p.size, p.size / 2f)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(bottom = 24.dp)
+                    ) {
+                        // Header
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(streak.color).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(streak.emoji, fontSize = 24.sp)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = streak.title,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                ParticleShape.CIRCLE -> drawCircle(
-                                    color = p.color.copy(alpha = p.alpha),
-                                    radius = p.size / 2.5f,
-                                    center = Offset(p.x, p.y)
-                                )
-                                ParticleShape.RIBBON -> drawRect(
-                                    color = p.color.copy(alpha = p.alpha),
-                                    topLeft = Offset(p.x - p.size * 0.75f, p.y - p.size / 6f),
-                                    size = Size(p.size * 1.5f, p.size / 3f)
+                                Text(
+                                    text = streak.category.displayName.split("/").first(),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
                                 )
                             }
                         }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+
+                        // Pause / Resume option
+                        SheetOptionItem(
+                            icon = if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            title = if (streak.isPaused) "Resume Routine" else "Pause Routine",
+                            description = if (streak.isPaused) "Resume notifications and tracking" else "Temporarily freeze tracking and alarms",
+                            iconColor = MaterialTheme.colorScheme.secondary,
+                            onClick = {
+                                viewModel.togglePauseStreak(streak)
+                                selectedStreakForMenu = null
+                            }
+                        )
+
+                        // Archive / Unarchive option
+                        SheetOptionItem(
+                            icon = Icons.Default.Archive,
+                            title = if (streak.isArchived) "Unarchive Streak" else "Archive Streak",
+                            description = if (streak.isArchived) "Bring it back to your active list" else "Move to vault to pause notifications",
+                            iconColor = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                viewModel.toggleArchiveStreak(streak)
+                                selectedStreakForMenu = null
+                            }
+                        )
+
+                        // Edit option
+                        SheetOptionItem(
+                            icon = Icons.Default.Edit,
+                            title = "Edit Streak",
+                            description = "Modify reminder times, category, colors, and frequency",
+                            iconColor = WarningAmber,
+                            onClick = {
+                                onNavigateToEdit(streak.id)
+                                selectedStreakForMenu = null
+                            }
+                        )
+
+                        // Delete option
+                        SheetOptionItem(
+                            icon = Icons.Default.Delete,
+                            title = "Delete Streak",
+                            description = "Permanently delete this streak and all completed history",
+                            iconColor = AccentCoral,
+                            titleColor = AccentCoral,
+                            onClick = {
+                                viewModel.deleteStreak(streak)
+                                selectedStreakForMenu = null
+                            }
+                        )
                     }
                 }
             }
@@ -614,11 +715,8 @@ fun StreakGridCard(
     isCompletedToday: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onPause: () -> Unit,
-    onArchive: () -> Unit,
-    onDelete: () -> Unit
+    onOptionsClick: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
     val streakColor = Color(streak.color)
 
     Card(
@@ -666,45 +764,16 @@ fun StreakGridCard(
                         Text(streak.emoji, fontSize = 20.sp)
                     }
 
-                    Box {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (streak.isPaused) "Resume" else "Pause", color = MaterialTheme.colorScheme.onSurface) },
-                                onClick = { onPause(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(if (streak.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.onSurface) },
-                                onClick = { onArchive(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete", color = AccentCoral) },
-                                onClick = { onDelete(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = AccentCoral) }
-                            )
-                        }
+                    IconButton(
+                        onClick = onOptionsClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
 
@@ -790,12 +859,8 @@ fun StreakCard(
     isCompletedToday: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onPause: () -> Unit,
-    onArchive: () -> Unit,
-    onDelete: () -> Unit
+    onOptionsClick: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -877,31 +942,8 @@ fun StreakCard(
 
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (streak.isPaused) "Resume" else "Pause", color = MaterialTheme.colorScheme.onSurface) },
-                                onClick = { onPause(); showMenu = false },
-                                leadingIcon = { Icon(if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(if (streak.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.onSurface) },
-                                onClick = { onArchive(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete", color = AccentCoral) },
-                                onClick = { onDelete(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = AccentCoral) }
-                            )
-                        }
+                    IconButton(onClick = onOptionsClick) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -965,6 +1007,53 @@ fun StreakCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SheetOptionItem(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+    iconColor: Color = MaterialTheme.colorScheme.primary,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = titleColor
+            )
+            Text(
+                text = description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

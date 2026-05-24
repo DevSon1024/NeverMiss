@@ -129,9 +129,7 @@ fun CreateStreakScreen(
                     isCompletedToday = false,
                     onClick = {},
                     onLongClick = {},
-                    onPause = {},
-                    onArchive = {},
-                    onDelete = {}
+                    onOptionsClick = {}
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
