@@ -33,8 +33,20 @@ fun NeverMissNavGraph(
             HomeScreen(
                 onNavigateToCreate = { navController.navigate(Screen.CreateStreak.createRoute()) },
                 onNavigateToEdit = { streakId -> navController.navigate(Screen.CreateStreak.createRoute(streakId)) },
-                onNavigateToAnalytics = { navController.navigate(Screen.Analytics.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToAnalytics = {
+                    navController.navigate(Screen.Analytics.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
         
@@ -56,12 +68,40 @@ fun NeverMissNavGraph(
         
         composable(route = Screen.Analytics.route) {
             AnalyticsScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         
         composable(route = Screen.Settings.route) {
             SettingsScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToAnalytics = {
+                    navController.navigate(Screen.Analytics.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
