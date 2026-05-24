@@ -191,4 +191,48 @@ class StreakCalculatorTest {
             )
         )
     }
+
+    @Test
+    fun testCutoffMidnight() {
+        val streak = Streak(
+            title = "Midnight Check",
+            description = "",
+            emoji = "",
+            category = StreakCategory.CUSTOM,
+            color = 0,
+            creationDate = "2026-05-20",
+            cutoffTime = "00:00",
+            gracePeriodUntil3AM = false
+        )
+
+        // Today is May 22nd. 12:00 PM (noon) should NOT have passed the cutoff (ends midnight of the next day)
+        assertFalse(
+            StreakCalculator.hasCutoffPassed(
+                streak = streak,
+                date = LocalDate.of(2026, 5, 22),
+                nowTime = LocalTime.of(12, 0),
+                nowDate = LocalDate.of(2026, 5, 22)
+            )
+        )
+
+        // May 22nd at 11:59 PM should NOT have passed the cutoff
+        assertFalse(
+            StreakCalculator.hasCutoffPassed(
+                streak = streak,
+                date = LocalDate.of(2026, 5, 22),
+                nowTime = LocalTime.of(23, 59),
+                nowDate = LocalDate.of(2026, 5, 22)
+            )
+        )
+
+        // May 23rd at 00:01 AM should have passed the cutoff for May 22nd
+        assertTrue(
+            StreakCalculator.hasCutoffPassed(
+                streak = streak,
+                date = LocalDate.of(2026, 5, 22),
+                nowTime = LocalTime.of(0, 1),
+                nowDate = LocalDate.of(2026, 5, 23)
+            )
+        )
+    }
 }

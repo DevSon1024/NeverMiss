@@ -37,6 +37,16 @@ private val CommonEmojis = listOf(
     "💧", "🧠", "🏃", "🧘", "🍳", "🧹", "🐕", "🐈", "🎨", "🎸", "💰", "✨"
 )
 
+private fun formatDateString(dateStr: String): String {
+    return try {
+        val date = java.time.LocalDate.parse(dateStr)
+        date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+    } catch (e: Exception) {
+        val today = java.time.LocalDate.now()
+        today.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateStreakScreen(
@@ -101,7 +111,7 @@ fun CreateStreakScreen(
                     emoji = state.emoji,
                     category = state.category,
                     color = state.color,
-                    creationDate = "",
+                    creationDate = if (state.creationDate.isEmpty()) java.time.LocalDate.now().toString() else state.creationDate,
                     reminderTime = state.reminderTime,
                     reminderRepeatHours = state.reminderRepeatHours,
                     persistent = state.persistent,
@@ -164,6 +174,27 @@ fun CreateStreakScreen(
                     placeholder = { Text("What is the goal of this routine?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Start Date (Read-only)
+                Text("Start Date", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = formatDateString(if (state.creationDate.isEmpty()) java.time.LocalDate.now().toString() else state.creationDate),
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,

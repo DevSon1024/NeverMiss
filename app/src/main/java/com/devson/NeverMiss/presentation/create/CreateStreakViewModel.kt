@@ -23,6 +23,7 @@ data class CreateStreakState(
     val emoji: String = "✨",
     val category: StreakCategory = StreakCategory.CUSTOM,
     val color: Int = 0xFF6200EE.toInt(), // Default Purple
+    val creationDate: String = "", // yyyy-MM-dd
     val repeatIntervalDays: Int = 1,
     val daysOfWeek: List<Int> = emptyList(), // 1=Mon, 7=Sun
     val reminderTime: String = "10:00", // HH:mm
@@ -60,6 +61,7 @@ class CreateStreakViewModel @Inject constructor(
                         emoji = streak.emoji,
                         category = streak.category,
                         color = streak.color,
+                        creationDate = streak.creationDate,
                         repeatIntervalDays = streak.repeatIntervalDays,
                         daysOfWeek = streak.daysOfWeek,
                         reminderTime = streak.reminderTime,
@@ -159,9 +161,8 @@ class CreateStreakViewModel @Inject constructor(
                     emoji = currentState.emoji,
                     category = currentState.category,
                     color = currentState.color,
-                    creationDate = if (currentState.id > 0) {
-                        // Keep original creation date
-                        streakUseCases.getStreakById(currentState.id).first()?.creationDate ?: todayStr
+                    creationDate = if (currentState.id > 0 && currentState.creationDate.isNotEmpty()) {
+                        currentState.creationDate
                     } else todayStr,
                     repeatIntervalDays = currentState.repeatIntervalDays,
                     daysOfWeek = currentState.daysOfWeek,

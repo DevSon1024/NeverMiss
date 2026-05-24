@@ -40,6 +40,7 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val getActiveStreaksUseCase = mockk<GetActiveStreaksUseCase>()
+    private val getAllStreaksUseCase = mockk<GetAllStreaksUseCase>()
     private val getStreakByIdUseCase = mockk<GetStreakByIdUseCase>()
     private val createStreakUseCase = mockk<CreateStreakUseCase>()
     private val updateStreakUseCase = mockk<UpdateStreakUseCase>()
@@ -49,6 +50,7 @@ class HomeViewModelTest {
 
     private val streakUseCases = StreakUseCases(
         getActiveStreaks = getActiveStreaksUseCase,
+        getAllStreaks = getAllStreaksUseCase,
         getStreakById = getStreakByIdUseCase,
         createStreak = createStreakUseCase,
         updateStreak = updateStreakUseCase,
@@ -75,6 +77,7 @@ class HomeViewModelTest {
     @Before
     fun setUp() {
         coEvery { getActiveStreaksUseCase() } returns flowOf(listOf(sampleStreak))
+        coEvery { getAllStreaksUseCase() } returns flowOf(listOf(sampleStreak))
         coEvery { userPreferences.streakFreezesFlow } returns flowOf(3)
         viewModel = HomeViewModel(streakUseCases, userPreferences)
     }

@@ -53,7 +53,12 @@ object StreakCalculator {
             val currentDateTime = nowDate.atTime(nowTime)
             currentDateTime.isAfter(cutoffDateTime)
         } else {
-            val cutoffDateTime = date.atTime(cutoffLocalTime)
+            // If cutoff is 12 AM (midnight/00:00), the deadline is midnight of the next day.
+            val cutoffDateTime = if (cutoffLocalTime == LocalTime.MIDNIGHT) {
+                date.plusDays(1).atTime(LocalTime.MIDNIGHT)
+            } else {
+                date.atTime(cutoffLocalTime)
+            }
             val currentDateTime = nowDate.atTime(nowTime)
             currentDateTime.isAfter(cutoffDateTime)
         }

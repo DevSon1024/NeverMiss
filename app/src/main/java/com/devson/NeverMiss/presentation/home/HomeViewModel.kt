@@ -23,9 +23,11 @@ data class HomeState(
     val completedToday: List<Streak> = emptyList(),
     val highestStreaks: List<Streak> = emptyList(),
     val recentlyMissed: List<Streak> = emptyList(),
+    val archivedStreaks: List<Streak> = emptyList(),
     val searchQuery: String = "",
     val selectedCategory: String? = null,
     val isGridView: Boolean = false,
+    val showArchived: Boolean = false,
     val freezesRemaining: Int = 3
 )
 
@@ -38,41 +40,62 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _selectedCategory = MutableStateFlow<String?>(null)
     private val _isGridView = MutableStateFlow(false)
+    private val _showArchived = MutableStateFlow(false)
 
     val state: StateFlow<HomeState> = combine(
-        streakUseCases.getActiveStreaks(),
+        streakUseCases.getAllStreaks(),
         userPreferences.streakFreezesFlow,
         _searchQuery,
         _selectedCategory,
-        _isGridView
-    ) { streaks, freezes, search, category, isGrid ->
+        _isGridView,
+        _showArchived
+    ) { array ->
+        @Suppress("UNCHECKED_CAST")
+        val streaks = array[0] as List<Streak>
+        val freezes = array[1] as Int
+        val search = array[2] as String
+        val category = array[3] as String?
+        val isGrid = array[4] as Boolean
+        val showArchived = array[5] as Boolean
+
         val todayStr = StreakCalculator.formatDate(LocalDate.now())
         val yesterday = LocalDate.now().minusDays(1)
         val yesterdayStr = StreakCalculator.formatDate(yesterday)
 
+        // Split active and archived
+        val activeList = streaks.filter { !it.isArchived }
+        val archivedList = streaks.filter { it.isArchived }
+
         // Apply filters
-        val filtered = streaks.filter { streak ->
+        val filteredActive = activeList.filter { streak ->
             val matchesSearch = streak.title.contains(search, ignoreCase = true) ||
                     streak.description.contains(search, ignoreCase = true)
             val matchesCategory = category == null || streak.category.name == category
             matchesSearch && matchesCategory
         }
 
-        // Categorize
-        val completed = filtered.filter { it.lastCompletedDate == todayStr }
+        val filteredArchived = archivedList.filter { streak ->
+            val matchesSearch = streak.title.contains(search, ignoreCase = true) ||
+                    streak.description.contains(search, ignoreCase = true)
+            val matchesCategory = category == null || streak.category.name == category
+            matchesSearch && matchesCategory
+        }
+
+        // Categorize active streaks
+        val completed = filteredActive.filter { it.lastCompletedDate == todayStr }
         
-        val pending = filtered.filter { streak ->
+        val pending = filteredActive.filter { streak ->
             val isCompleted = streak.lastCompletedDate == todayStr
             val isScheduledToday = StreakCalculator.isScheduled(streak, LocalDate.now())
             isScheduledToday && !isCompleted && !streak.isPaused
         }
 
-        val highest = filtered.filter { it.currentStreak > 0 }
+        val highest = filteredActive.filter { it.currentStreak > 0 }
             .sortedByDescending { it.currentStreak }
             .take(3)
 
         // Missed recently: scheduled yesterday or today, not completed, and streak is 0 but longest > 0
-        val missed = filtered.filter { streak ->
+        val missed = filteredActive.filter { streak ->
             val wasScheduledYesterday = StreakCalculator.isScheduled(streak, yesterday)
             val wasCompletedYesterday = streak.lastCompletedDate == yesterdayStr
             val isMissed = wasScheduledYesterday && !wasCompletedYesterday && streak.currentStreak == 0 && streak.longestStreak > 0
@@ -80,14 +103,16 @@ class HomeViewModel @Inject constructor(
         }
 
         HomeState(
-            activeStreaks = filtered,
+            activeStreaks = filteredActive,
             pendingToday = pending,
             completedToday = completed,
             highestStreaks = highest,
             recentlyMissed = missed,
+            archivedStreaks = filteredArchived,
             searchQuery = search,
             selectedCategory = category,
             isGridView = isGrid,
+            showArchived = showArchived,
             freezesRemaining = freezes
         )
     }.stateIn(
@@ -106,6 +131,10 @@ class HomeViewModel @Inject constructor(
 
     fun onToggleLayout() {
         _isGridView.value = !_isGridView.value
+    }
+
+    fun onToggleShowArchived() {
+        _showArchived.value = !_showArchived.value
     }
 
     fun completeStreak(streakId: Long) {

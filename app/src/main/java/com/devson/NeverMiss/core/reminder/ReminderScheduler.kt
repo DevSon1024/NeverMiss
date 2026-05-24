@@ -145,7 +145,9 @@ class ReminderScheduler @Inject constructor(
 
                 // Check if this repeat time falls before the cutoff limit
                 val cutoffLocalTime = parseLocalTime(streak.cutoffTime)
-                val isCutoffNextDay = streak.gracePeriodUntil3AM || cutoffLocalTime.isBefore(reminderLocalTime)
+                val isCutoffNextDay = streak.gracePeriodUntil3AM || 
+                    cutoffLocalTime == LocalTime.MIDNIGHT ||
+                    cutoffLocalTime.isBefore(reminderLocalTime)
 
                 val hasPassedCutoff = if (isCutoffNextDay) {
                     // Grace period until 3 AM next day

@@ -4,6 +4,7 @@ import javax.inject.Inject
 
 data class StreakUseCases @Inject constructor(
     val getActiveStreaks: GetActiveStreaksUseCase,
+    val getAllStreaks: GetAllStreaksUseCase,
     val getStreakById: GetStreakByIdUseCase,
     val createStreak: CreateStreakUseCase,
     val updateStreak: UpdateStreakUseCase,

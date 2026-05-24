@@ -173,13 +173,13 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            text = "NeverMiss",
+                            text = if (state.showArchived) "Archived Vault" else "NeverMiss",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "Consistency builds greatness",
+                            text = if (state.showArchived) "Manage your archived streaks" else "Consistency builds greatness",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
@@ -215,12 +215,21 @@ fun HomeScreen(
                     placeholder = { Text("Search streaks...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     trailingIcon = {
-                        IconButton(onClick = viewModel::onToggleLayout) {
-                            Icon(
-                                imageVector = if (state.isGridView) Icons.Default.List else Icons.Default.GridView,
-                                contentDescription = "Toggle Layout",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
+                            IconButton(onClick = viewModel::onToggleShowArchived) {
+                                Icon(
+                                    imageVector = if (state.showArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                                    contentDescription = "Toggle Archived",
+                                    tint = if (state.showArchived) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = viewModel::onToggleLayout) {
+                                Icon(
+                                    imageVector = if (state.isGridView) Icons.Default.List else Icons.Default.GridView,
+                                    contentDescription = "Toggle Layout",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -271,7 +280,9 @@ fun HomeScreen(
                 // Streaks Content
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (state.activeStreaks.isEmpty()) {
+                val isListEmpty = if (state.showArchived) state.archivedStreaks.isEmpty() else state.activeStreaks.isEmpty()
+
+                if (isListEmpty) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -279,14 +290,21 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("✨", fontSize = 48.sp)
+                            Text(if (state.showArchived) "📁" else "✨", fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("No streaks created yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                            Text("Tap the + button to build consistency!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
+                            Text(
+                                text = if (state.showArchived) "No archived streaks found." else "No streaks created yet.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            if (!state.showArchived) {
+                                Text("Tap the + button to build consistency!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
+                            }
                         }
                     }
                 } else {
                     val todayStr = StreakCalculator.formatDate(LocalDate.now())
+                    val displayStreaks = if (state.showArchived) state.archivedStreaks else state.activeStreaks
                     
                     if (state.isGridView) {
                         LazyVerticalGrid(
@@ -297,7 +315,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(state.activeStreaks) { streak ->
+                            items(displayStreaks) { streak ->
                                 val isDone = streak.lastCompletedDate == todayStr
                                 StreakCard(
                                     streak = streak,
@@ -307,7 +325,7 @@ fun HomeScreen(
                                             viewModel.completeStreak(streak.id)
                                             triggerConfetti = true
                                         } else {
-                                            viewModel.completeStreak(streak.id) // undo completion
+                                            viewModel.completeStreak(streak.id)
                                         }
                                     },
                                     onLongClick = { onNavigateToEdit(streak.id) },
@@ -324,18 +342,22 @@ fun HomeScreen(
                                 .weight(1f),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Section: Pending Today
-                            if (state.pendingToday.isNotEmpty()) {
+                            if (state.showArchived) {
                                 item {
-                                    Text("Pending Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    Text("Archived Streaks Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                 }
-                                items(state.pendingToday) { streak ->
+                                items(state.archivedStreaks) { streak ->
+                                    val isDone = streak.lastCompletedDate == todayStr
                                     StreakCard(
                                         streak = streak,
-                                        isCompletedToday = false,
+                                        isCompletedToday = isDone,
                                         onClick = { 
-                                            viewModel.completeStreak(streak.id)
-                                            triggerConfetti = true
+                                            if (!isDone) {
+                                                viewModel.completeStreak(streak.id)
+                                                triggerConfetti = true
+                                            } else {
+                                                viewModel.completeStreak(streak.id)
+                                            }
                                         },
                                         onLongClick = { onNavigateToEdit(streak.id) },
                                         onPause = { viewModel.togglePauseStreak(streak) },
@@ -343,47 +365,68 @@ fun HomeScreen(
                                         onDelete = { viewModel.deleteStreak(streak) }
                                     )
                                 }
-                            }
+                            } else {
+                                // Section: Pending Today
+                                if (state.pendingToday.isNotEmpty()) {
+                                    item {
+                                        Text("Pending Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    }
+                                    items(state.pendingToday) { streak ->
+                                        StreakCard(
+                                            streak = streak,
+                                            isCompletedToday = false,
+                                            onClick = { 
+                                                viewModel.completeStreak(streak.id)
+                                                triggerConfetti = true
+                                            },
+                                            onLongClick = { onNavigateToEdit(streak.id) },
+                                            onPause = { viewModel.togglePauseStreak(streak) },
+                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
+                                            onDelete = { viewModel.deleteStreak(streak) }
+                                        )
+                                    }
+                                }
 
-                            // Section: Completed Today
-                            if (state.completedToday.isNotEmpty()) {
-                                item {
-                                    Text("Completed Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                // Section: Completed Today
+                                if (state.completedToday.isNotEmpty()) {
+                                    item {
+                                        Text("Completed Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    }
+                                    items(state.completedToday) { streak ->
+                                        StreakCard(
+                                            streak = streak,
+                                            isCompletedToday = true,
+                                            onClick = { viewModel.completeStreak(streak.id) },
+                                            onLongClick = { onNavigateToEdit(streak.id) },
+                                            onPause = { viewModel.togglePauseStreak(streak) },
+                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
+                                            onDelete = { viewModel.deleteStreak(streak) }
+                                        )
+                                    }
                                 }
-                                items(state.completedToday) { streak ->
-                                    StreakCard(
-                                        streak = streak,
-                                        isCompletedToday = true,
-                                        onClick = { viewModel.completeStreak(streak.id) },
-                                        onLongClick = { onNavigateToEdit(streak.id) },
-                                        onPause = { viewModel.togglePauseStreak(streak) },
-                                        onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                        onDelete = { viewModel.deleteStreak(streak) }
-                                    )
-                                }
-                            }
 
-                            // Section: All Other Active
-                            val otherStreaks = state.activeStreaks.filter {
-                                it.lastCompletedDate != todayStr && !state.pendingToday.any { p -> p.id == it.id }
-                            }
-                            if (otherStreaks.isNotEmpty()) {
-                                item {
-                                    Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                // Section: All Other Active
+                                val otherStreaks = state.activeStreaks.filter {
+                                    it.lastCompletedDate != todayStr && !state.pendingToday.any { p -> p.id == it.id }
                                 }
-                                items(otherStreaks) { streak ->
-                                    StreakCard(
-                                        streak = streak,
-                                        isCompletedToday = false,
-                                        onClick = { 
-                                            viewModel.completeStreak(streak.id)
-                                            triggerConfetti = true
-                                        },
-                                        onLongClick = { onNavigateToEdit(streak.id) },
-                                        onPause = { viewModel.togglePauseStreak(streak) },
-                                        onArchive = { viewModel.toggleArchiveStreak(streak) },
-                                        onDelete = { viewModel.deleteStreak(streak) }
-                                    )
+                                if (otherStreaks.isNotEmpty()) {
+                                    item {
+                                        Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    }
+                                    items(otherStreaks) { streak ->
+                                        StreakCard(
+                                            streak = streak,
+                                            isCompletedToday = false,
+                                            onClick = { 
+                                                viewModel.completeStreak(streak.id)
+                                                triggerConfetti = true
+                                            },
+                                            onLongClick = { onNavigateToEdit(streak.id) },
+                                            onPause = { viewModel.togglePauseStreak(streak) },
+                                            onArchive = { viewModel.toggleArchiveStreak(streak) },
+                                            onDelete = { viewModel.deleteStreak(streak) }
+                                        )
+                                    }
                                 }
                             }
                         }
