@@ -1,4 +1,4 @@
-package com.devson.androidTemplate
+package com.devson.NeverMiss
 
 import org.junit.Test
 

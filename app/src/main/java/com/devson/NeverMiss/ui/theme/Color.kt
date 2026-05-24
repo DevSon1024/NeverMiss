@@ -1,4 +1,4 @@
-package com.devson.androidTemplate.ui.theme
+package com.devson.NeverMiss.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
