@@ -1,12 +1,10 @@
-package com.devson.NeverMiss.presentation.home
+package com.devson.NeverMiss.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,10 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -37,16 +36,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.ui.theme.*
-import com.devson.NeverMiss.presentation.util.getCategoryIcon
+import com.devson.NeverMiss.ui.util.getCategoryIcon
+import com.devson.NeverMiss.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
-import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
 // Confetti Particle model
+enum class ParticleShape { RECT, CIRCLE, RIBBON }
+
 data class Particle(
     val x: Float,
     val y: Float,
@@ -56,7 +60,8 @@ data class Particle(
     val size: Float,
     val angle: Float,
     val rotationSpeed: Float,
-    val alpha: Float = 1f
+    val alpha: Float = 1f,
+    val shape: ParticleShape = ParticleShape.RECT
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -75,41 +80,65 @@ fun HomeScreen(
     var confettiParticles by remember { mutableStateOf<List<Particle>>(emptyList()) }
     var triggerConfetti by remember { mutableStateOf(false) }
 
+    // Track canvas size so particles spawn at the real center
+    var canvasWidth by remember { mutableStateOf(0f) }
+    var canvasHeight by remember { mutableStateOf(0f) }
+
     LaunchedEffect(triggerConfetti) {
         if (triggerConfetti) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            // Spawn particles
-            val list = mutableListOf<Particle>()
-            val colors = listOf(Color.Yellow, Color.Cyan, Color.Green, Color.Magenta, Color.Red, Color.Blue)
-            for (i in 0..100) {
-                list.add(
-                    Particle(
-                        x = 500f, // Center relative coordinates updated in Canvas
-                        y = 1000f,
-                        vx = (Random.nextFloat() - 0.5f) * 30f,
-                        vy = -Random.nextFloat() * 40f - 10f,
-                        color = colors.random(),
-                        size = Random.nextFloat() * 15f + 10f,
-                        angle = Random.nextFloat() * 360f,
-                        rotationSpeed = (Random.nextFloat() - 0.5f) * 10f
-                    )
+
+            val spawnX = if (canvasWidth > 0f) canvasWidth / 2f else 540f
+            val spawnY = if (canvasHeight > 0f) canvasHeight * 0.45f else 960f
+
+            val confettiColors = listOf(
+                Color(0xFFFFD700), // Gold
+                Color(0xFF00E5FF), // Cyan
+                Color(0xFF69F0AE), // Green
+                Color(0xFFFF4081), // Pink
+                Color(0xFFE040FB), // Purple
+                Color(0xFFFF6D00), // Orange
+                Color(0xFF40C4FF), // Light blue
+                Color(0xFFFFFF00)  // Yellow
+            )
+            val shapes = ParticleShape.entries.toTypedArray()
+
+            val list = (0 until 120).map {
+                val speed = Random.nextFloat() * 28f + 12f
+                val angleDeg = Random.nextFloat() * 360f
+                val rad = Math.toRadians(angleDeg.toDouble())
+                Particle(
+                    x = spawnX,
+                    y = spawnY,
+                    vx = (Math.cos(rad) * speed).toFloat(),
+                    vy = (Math.sin(rad) * speed - 22f).toFloat(), // bias upward
+                    color = confettiColors.random(),
+                    size = Random.nextFloat() * 14f + 7f,
+                    angle = Random.nextFloat() * 360f,
+                    rotationSpeed = (Random.nextFloat() - 0.5f) * 12f,
+                    shape = shapes.random()
                 )
             }
             confettiParticles = list
             triggerConfetti = false
 
-            // Animation Loop
+            // Animation loop — ~140 frames (~2.3 s), fade starts at 60% life
+            val totalTicks = 140
             var ticks = 0
-            while (confettiParticles.isNotEmpty() && ticks < 100) {
+            while (confettiParticles.isNotEmpty() && ticks < totalTicks) {
+                val progress = ticks.toFloat() / totalTicks
+                val fadeStart = 0.55f
                 confettiParticles = confettiParticles.mapNotNull { p ->
-                    if (p.y > 2200f || p.alpha <= 0.05f) null
+                    val newAlpha = if (progress < fadeStart) 1f
+                    else (1f - (progress - fadeStart) / (1f - fadeStart)).coerceAtLeast(0f)
+                    if (newAlpha <= 0.01f || p.y > canvasHeight + 100f) null
                     else p.copy(
                         x = p.x + p.vx,
                         y = p.y + p.vy,
-                        vy = p.vy + 0.8f, // Gravity
-                        vx = p.vx * 0.98f, // Friction
+                        vy = p.vy + 0.65f,   // gravity
+                        vx = p.vx * 0.985f,  // air friction
                         angle = p.angle + p.rotationSpeed,
-                        alpha = (p.alpha - 0.01f).coerceAtLeast(0f)
+                        alpha = newAlpha
                     )
                 }
                 delay(16)
@@ -208,24 +237,24 @@ fun HomeScreen(
 
                 // Date & Time Showcase (Default / Custom Override)
                 Spacer(modifier = Modifier.height(10.dp))
-                
-                val isOverride = com.devson.NeverMiss.core.util.AppClock.isOverrideActive()
-                val displayDate = com.devson.NeverMiss.core.util.AppClock.now()
+
+                val isOverride = AppClock.isOverrideActive()
+                val displayDate = AppClock.now()
                 val formatter = remember(displayDate) {
-                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy")
+                    DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy")
                 }
                 val dateStr = remember(displayDate, formatter) {
                     displayDate.format(formatter)
                 }
-                
+
                 var currentTimeStr by remember { mutableStateOf("") }
-                
+
                 LaunchedEffect(isOverride) {
                     while (true) {
-                        val nowTime = java.time.LocalTime.now()
-                        val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("hh:mm a")
+                        val nowTime = LocalTime.now()
+                        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
                         currentTimeStr = nowTime.format(timeFormatter)
-                        kotlinx.coroutines.delay(1000)
+                        delay(1000)
                     }
                 }
 
@@ -280,7 +309,7 @@ fun HomeScreen(
                             }
                         }
                     }
-                    
+
                     Text(
                         text = currentTimeStr,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -411,24 +440,24 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    val todayStr = StreakCalculator.formatDate(com.devson.NeverMiss.core.util.AppClock.now())
+                    val todayStr = StreakCalculator.formatDate(AppClock.now())
                     val displayStreaks = if (state.showArchived) state.archivedStreaks else state.activeStreaks
-                    
+
                     if (state.isGridView) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(displayStreaks) { streak ->
                                 val isDone = streak.lastCompletedDate == todayStr
-                                StreakCard(
+                                StreakGridCard(
                                     streak = streak,
                                     isCompletedToday = isDone,
-                                    onClick = { 
+                                    onClick = {
                                         if (!isDone) {
                                             viewModel.completeStreak(streak.id)
                                             triggerConfetti = true
@@ -459,7 +488,7 @@ fun HomeScreen(
                                     StreakCard(
                                         streak = streak,
                                         isCompletedToday = isDone,
-                                        onClick = { 
+                                        onClick = {
                                             if (!isDone) {
                                                 viewModel.completeStreak(streak.id)
                                                 triggerConfetti = true
@@ -483,7 +512,7 @@ fun HomeScreen(
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,
-                                            onClick = { 
+                                            onClick = {
                                                 viewModel.completeStreak(streak.id)
                                                 triggerConfetti = true
                                             },
@@ -525,7 +554,7 @@ fun HomeScreen(
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,
-                                            onClick = { 
+                                            onClick = {
                                                 viewModel.completeStreak(streak.id)
                                                 triggerConfetti = true
                                             },
@@ -544,20 +573,210 @@ fun HomeScreen(
 
             // Confetti Overlay Canvas
             if (confettiParticles.isNotEmpty()) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
+                Canvas(modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coords ->
+                        canvasWidth = coords.size.width.toFloat()
+                        canvasHeight = coords.size.height.toFloat()
+                    }
+                ) {
                     confettiParticles.forEach { p ->
-                        // Dynamically resolve start positions to coordinates
-                        val finalX = if (p.x == 500f) size.width / 2f + p.vx else p.x
-                        val finalY = if (p.y == 1000f) size.height * 0.7f + p.vy else p.y
-                        
-                        rotate(p.angle, pivot = Offset(finalX, finalY)) {
-                            drawRect(
-                                color = p.color.copy(alpha = p.alpha),
-                                topLeft = Offset(finalX - p.size / 2f, finalY - p.size / 2f),
-                                size = androidx.compose.ui.geometry.Size(p.size, p.size)
+                        rotate(p.angle, pivot = Offset(p.x, p.y)) {
+                            when (p.shape) {
+                                ParticleShape.RECT -> drawRect(
+                                    color = p.color.copy(alpha = p.alpha),
+                                    topLeft = Offset(p.x - p.size / 2f, p.y - p.size / 4f),
+                                    size = Size(p.size, p.size / 2f)
+                                )
+                                ParticleShape.CIRCLE -> drawCircle(
+                                    color = p.color.copy(alpha = p.alpha),
+                                    radius = p.size / 2.5f,
+                                    center = Offset(p.x, p.y)
+                                )
+                                ParticleShape.RIBBON -> drawRect(
+                                    color = p.color.copy(alpha = p.alpha),
+                                    topLeft = Offset(p.x - p.size * 0.75f, p.y - p.size / 6f),
+                                    size = Size(p.size * 1.5f, p.size / 3f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun StreakGridCard(
+    streak: Streak,
+    isCompletedToday: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onPause: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val streakColor = Color(streak.color)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = if (isCompletedToday) {
+            BorderStroke(1.5.dp, streakColor)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        }
+    ) {
+        Box {
+            // Subtle color tint strip at top
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(streakColor.copy(alpha = 0.8f), streakColor.copy(alpha = 0.3f))
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 14.dp, bottom = 12.dp)
+            ) {
+                // Top row: emoji + menu
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(streakColor.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(streak.emoji, fontSize = 20.sp)
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (streak.isPaused) "Resume" else "Pause", color = MaterialTheme.colorScheme.onSurface) },
+                                onClick = { onPause(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (streak.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.onSurface) },
+                                onClick = { onArchive(); showMenu = false },
+                                leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = AccentCoral) },
+                                onClick = { onDelete(); showMenu = false },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = AccentCoral) }
                             )
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Title
+                Text(
+                    text = streak.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 18.sp
+                )
+
+                Text(
+                    text = streak.category.displayName.split("/").first(),
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Streak count row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Whatshot,
+                        contentDescription = "Streak",
+                        tint = streakColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "${streak.currentStreak}",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        color = streakColor
+                    )
+                    if (streak.longestStreak > 0) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "/ ${streak.longestStreak}",
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Status badge
+                val (badgeText, badgeColor) = when {
+                    isCompletedToday -> "DONE" to SuccessGreen
+                    streak.isPaused  -> "PAUSED" to MaterialTheme.colorScheme.onSurfaceVariant
+                    else             -> "DUE" to WarningAmber
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(badgeColor.copy(alpha = 0.18f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = badgeColor,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -590,9 +809,9 @@ fun StreakCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = if (isCompletedToday) {
-            androidx.compose.foundation.BorderStroke(1.5.dp, Color(streak.color))
+            BorderStroke(1.5.dp, Color(streak.color))
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -657,7 +876,7 @@ fun StreakCard(
                     }
 
                     Spacer(modifier = Modifier.width(4.dp))
-                    
+
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)

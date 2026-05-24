@@ -1,4 +1,4 @@
-package com.devson.NeverMiss.presentation.settings
+package com.devson.NeverMiss.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -13,7 +13,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn

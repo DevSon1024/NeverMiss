@@ -1,4 +1,4 @@
-package com.devson.NeverMiss.presentation.util
+package com.devson.NeverMiss.ui.util
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*

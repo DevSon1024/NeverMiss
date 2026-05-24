@@ -1,5 +1,6 @@
-package com.devson.NeverMiss.presentation.settings
+package com.devson.NeverMiss.ui.screens
 
+import android.app.DatePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -8,8 +9,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -33,9 +34,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.data.local.preferences.UserPreferences
 import com.devson.NeverMiss.ui.theme.*
+import com.devson.NeverMiss.viewmodel.SettingsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +136,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Application Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -189,7 +192,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Custom Snooze Duration", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -250,7 +253,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -279,7 +282,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column {
                         PermissionShortcutItem(
@@ -329,7 +332,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column {
                         Row(
@@ -397,7 +400,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -421,7 +424,7 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             
                             var dateInput by remember(state.devOverrideDate) {
-                                mutableStateOf(state.devOverrideDate.ifEmpty { java.time.LocalDate.now().toString() })
+                                mutableStateOf(state.devOverrideDate.ifEmpty { LocalDate.now().toString() })
                             }
                             
                             OutlinedTextField(
@@ -430,7 +433,7 @@ fun SettingsScreen(
                                     dateInput = it
                                     if (it.length == 10) {
                                         try {
-                                            java.time.LocalDate.parse(it)
+                                            LocalDate.parse(it)
                                             viewModel.setDevOverrideDate(it)
                                         } catch (e: Exception) {
                                             // Invalid format
@@ -443,13 +446,13 @@ fun SettingsScreen(
                                 trailingIcon = {
                                     IconButton(
                                         onClick = {
-                                            val today = java.time.LocalDate.now()
+                                            val today = LocalDate.now()
                                             val currentSetDate = try {
-                                                java.time.LocalDate.parse(dateInput)
+                                                LocalDate.parse(dateInput)
                                             } catch (e: Exception) {
                                                 today
                                             }
-                                            android.app.DatePickerDialog(
+                                            DatePickerDialog(
                                                 context,
                                                 { _, year, month, dayOfMonth ->
                                                     val selectedDateStr = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)

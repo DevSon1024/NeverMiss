@@ -1,8 +1,8 @@
-package com.devson.NeverMiss.presentation.create
+package com.devson.NeverMiss.viewmodel
 
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.usecase.StreakUseCases
@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import javax.inject.Inject
 
 data class CreateStreakState(
@@ -153,7 +152,7 @@ class CreateStreakViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val todayStr = com.devson.NeverMiss.core.util.AppClock.now().toString()
+                val todayStr = AppClock.now().toString()
                 val streak = Streak(
                     id = currentState.id,
                     title = currentState.title.trim(),

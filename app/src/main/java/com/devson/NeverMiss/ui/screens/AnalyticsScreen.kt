@@ -1,8 +1,10 @@
-package com.devson.NeverMiss.presentation.analytics
+package com.devson.NeverMiss.ui.screens
 
+import android.graphics.Paint
+import android.graphics.Typeface
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -10,8 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.Home
@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
@@ -37,9 +38,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.devson.NeverMiss.domain.model.StreakCalculator
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.ui.theme.*
-import java.time.LocalDate
+import com.devson.NeverMiss.viewmodel.AnalyticsViewModel
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -109,7 +110,7 @@ fun AnalyticsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -160,7 +161,7 @@ fun AnalyticsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen)
@@ -174,7 +175,7 @@ fun AnalyticsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Icon(Icons.Default.Whatshot, contentDescription = null, tint = WarningAmber)
@@ -199,7 +200,7 @@ fun AnalyticsScreen(
                         .height(220.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Box(
                         modifier = Modifier
@@ -246,11 +247,11 @@ fun AnalyticsScreen(
 
                                     // Draw rate label text
                                     drawIntoCanvas { canvas ->
-                                        val paint = android.graphics.Paint().apply {
+                                        val paint = Paint().apply {
                                             color = android.graphics.Color.WHITE
                                             textSize = 10.sp.toPx()
-                                            textAlign = android.graphics.Paint.Align.CENTER
-                                            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                                            textAlign = Paint.Align.CENTER
+                                            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                                         }
                                         canvas.nativeCanvas.drawText(
                                             String.format("%.0f%%", rate * 100),
@@ -260,7 +261,7 @@ fun AnalyticsScreen(
                                         )
                                         
                                         paint.color = android.graphics.Color.parseColor("#94A3B8")
-                                        paint.typeface = android.graphics.Typeface.DEFAULT
+                                        paint.typeface = Typeface.DEFAULT
                                         canvas.nativeCanvas.drawText(
                                             dayLabel,
                                             x + (barWidth / 2f),
@@ -275,7 +276,7 @@ fun AnalyticsScreen(
                 }
 
                 // HEATMAP CALENDAR CANVAS DRAWING
-                val currentMonth = YearMonth.from(com.devson.NeverMiss.core.util.AppClock.now())
+                val currentMonth = YearMonth.from(AppClock.now())
                 val monthLabel = currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
                 val yearLabel = currentMonth.year.toString()
 
@@ -293,7 +294,7 @@ fun AnalyticsScreen(
                         .height(280.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
                         modifier = Modifier
@@ -373,18 +374,18 @@ fun AnalyticsScreen(
                                             topLeft = Offset(x, y),
                                             size = Size(boxSize, boxSize),
                                             cornerRadius = CornerRadius(8.dp.toPx()),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())
+                                            style = Stroke(1.dp.toPx())
                                         )
                                     }
 
                                     // Draw day number text
                                     drawIntoCanvas { canvas ->
-                                        val paint = android.graphics.Paint().apply {
+                                        val paint = Paint().apply {
                                             color = if (completionsCount > 0) android.graphics.Color.WHITE 
                                                     else android.graphics.Color.parseColor("#475569")
                                             textSize = 10.sp.toPx()
-                                            textAlign = android.graphics.Paint.Align.CENTER
-                                            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                                            textAlign = Paint.Align.CENTER
+                                            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                                         }
                                         // Center text offset adjustments
                                         val fontMetrics = paint.fontMetrics
@@ -420,7 +421,7 @@ fun AnalyticsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Row(
                             modifier = Modifier

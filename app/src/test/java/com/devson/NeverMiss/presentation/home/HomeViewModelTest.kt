@@ -5,6 +5,7 @@ import com.devson.NeverMiss.domain.model.CompletionStatus
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.usecase.*
+import com.devson.NeverMiss.viewmodel.HomeViewModel
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,7 +20,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
-import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(

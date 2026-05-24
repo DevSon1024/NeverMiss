@@ -1,6 +1,7 @@
-package com.devson.NeverMiss.presentation.create
+package com.devson.NeverMiss.ui.screens
 
 import android.app.TimePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,14 +24,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.ui.theme.*
-import com.devson.NeverMiss.presentation.util.getCategoryIcon
+import com.devson.NeverMiss.ui.util.getCategoryIcon
+import com.devson.NeverMiss.viewmodel.CreateStreakViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private val CommonEmojis = listOf(
     "🔥", "💪", "💊", "💻", "🦉", "🪴", "🏆", "🔄", "📚", "🍏",
@@ -40,11 +43,11 @@ private val CommonEmojis = listOf(
 
 private fun formatDateString(dateStr: String): String {
     return try {
-        val date = java.time.LocalDate.parse(dateStr)
-        date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+        val date = LocalDate.parse(dateStr)
+        date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     } catch (e: Exception) {
-        val today = com.devson.NeverMiss.core.util.AppClock.now()
-        today.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+        val today = AppClock.now()
+        today.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     }
 }
 
@@ -112,7 +115,7 @@ fun CreateStreakScreen(
                     emoji = state.emoji,
                     category = state.category,
                     color = state.color,
-                    creationDate = if (state.creationDate.isEmpty()) com.devson.NeverMiss.core.util.AppClock.now().toString() else state.creationDate,
+                    creationDate = if (state.creationDate.isEmpty()) AppClock.now().toString() else state.creationDate,
                     reminderTime = state.reminderTime,
                     reminderRepeatHours = state.reminderRepeatHours,
                     persistent = state.persistent,
@@ -121,7 +124,7 @@ fun CreateStreakScreen(
                 )
                 
                 // Renders the actual card layout used in HomeScreen
-                com.devson.NeverMiss.presentation.home.StreakCard(
+                StreakCard(
                     streak = previewStreak,
                     isCompletedToday = false,
                     onClick = {},
@@ -190,7 +193,7 @@ fun CreateStreakScreen(
                 Text("Start Date", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
-                    value = formatDateString(if (state.creationDate.isEmpty()) com.devson.NeverMiss.core.util.AppClock.now().toString() else state.creationDate),
+                    value = formatDateString(if (state.creationDate.isEmpty()) AppClock.now().toString() else state.creationDate),
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -316,7 +319,7 @@ fun CreateStreakScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -388,7 +391,7 @@ fun CreateStreakScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(

@@ -1,4 +1,4 @@
-package com.devson.NeverMiss.presentation.navigation
+package com.devson.NeverMiss.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
@@ -6,10 +6,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.devson.NeverMiss.presentation.analytics.AnalyticsScreen
-import com.devson.NeverMiss.presentation.create.CreateStreakScreen
-import com.devson.NeverMiss.presentation.home.HomeScreen
-import com.devson.NeverMiss.presentation.settings.SettingsScreen
+import com.devson.NeverMiss.ui.screens.AnalyticsScreen
+import com.devson.NeverMiss.ui.screens.CreateStreakScreen
+import com.devson.NeverMiss.ui.screens.HomeScreen
+import com.devson.NeverMiss.ui.screens.SettingsScreen
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")

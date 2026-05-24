@@ -1,19 +1,15 @@
-package com.devson.NeverMiss.presentation.analytics
+package com.devson.NeverMiss.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devson.NeverMiss.domain.model.CompletionStatus
-import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import java.time.DayOfWeek
-import java.time.LocalDate
 import com.devson.NeverMiss.core.util.AppClock
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit

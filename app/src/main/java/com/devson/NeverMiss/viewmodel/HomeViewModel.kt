@@ -1,4 +1,4 @@
-package com.devson.NeverMiss.presentation.home
+package com.devson.NeverMiss.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import java.time.LocalDate
 import com.devson.NeverMiss.core.util.AppClock
 
 data class HomeState(

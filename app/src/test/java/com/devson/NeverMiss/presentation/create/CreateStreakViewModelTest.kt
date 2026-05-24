@@ -4,8 +4,8 @@ import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.usecase.*
 import com.devson.NeverMiss.presentation.home.MainDispatcherRule
+import com.devson.NeverMiss.viewmodel.CreateStreakViewModel
 import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
