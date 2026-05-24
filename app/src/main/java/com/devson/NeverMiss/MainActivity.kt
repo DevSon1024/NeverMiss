@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
@@ -46,6 +47,12 @@ class MainActivity : ComponentActivity() {
             val themeState by userPreferences.themeFlow.collectAsState(initial = UserPreferences.AppTheme.SYSTEM)
             val dynamicColorState by userPreferences.dynamicColorsFlow.collectAsState(initial = true)
             val appLockPinState by userPreferences.appLockPinFlow.collectAsState(initial = "")
+            val devOverrideEnabledState by userPreferences.devOverrideDateEnabledFlow.collectAsState(initial = false)
+            val devOverrideDateState by userPreferences.devOverrideDateFlow.collectAsState(initial = "")
+
+            LaunchedEffect(devOverrideEnabledState, devOverrideDateState) {
+                com.devson.NeverMiss.core.util.AppClock.init(devOverrideEnabledState, devOverrideDateState)
+            }
 
             val darkTheme = when (themeState) {
                 UserPreferences.AppTheme.LIGHT -> false
@@ -203,7 +210,7 @@ fun AppLockScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (key == "back") {
-                                    Icon(Icons.Default.Backspace, contentDescription = "Backspace", tint = MaterialTheme.colorScheme.onSurface)
+                                    Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Backspace", tint = MaterialTheme.colorScheme.onSurface)
                                 } else {
                                     Text(
                                         text = key,

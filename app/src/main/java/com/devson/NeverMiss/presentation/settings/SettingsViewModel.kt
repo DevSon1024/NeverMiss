@@ -29,6 +29,8 @@ data class SettingsState(
     val snoozeDurationMinutes: Int = 15,
     val maxStreakFreezes: Int = 5,
     val appLockPin: String = "",
+    val devOverrideDateEnabled: Boolean = false,
+    val devOverrideDate: String = "",
     val backupSuccess: Boolean? = null,
     val restoreSuccess: Boolean? = null,
     val errorMessage: String? = null
@@ -94,6 +96,8 @@ class SettingsViewModel @Inject constructor(
         userPreferences.snoozeDurationMinutesFlow,
         userPreferences.maxStreakFreezesFlow,
         userPreferences.appLockPinFlow,
+        userPreferences.devOverrideDateEnabledFlow,
+        userPreferences.devOverrideDateFlow,
         _operationStatus,
         _errorStatus
     ) { flowsArray ->
@@ -102,9 +106,11 @@ class SettingsViewModel @Inject constructor(
         val snooze = flowsArray[2] as Int
         val maxFreezes = flowsArray[3] as Int
         val pin = flowsArray[4] as String
+        val devOverrideEnabled = flowsArray[5] as Boolean
+        val devOverrideDate = flowsArray[6] as String
         @Suppress("UNCHECKED_CAST")
-        val status = flowsArray[5] as Pair<Boolean?, Boolean?>
-        val err = flowsArray[6] as String?
+        val status = flowsArray[7] as Pair<Boolean?, Boolean?>
+        val err = flowsArray[8] as String?
 
         SettingsState(
             theme = theme,
@@ -112,6 +118,8 @@ class SettingsViewModel @Inject constructor(
             snoozeDurationMinutes = snooze,
             maxStreakFreezes = maxFreezes,
             appLockPin = pin,
+            devOverrideDateEnabled = devOverrideEnabled,
+            devOverrideDate = devOverrideDate,
             backupSuccess = status.first,
             restoreSuccess = status.second,
             errorMessage = err
@@ -149,6 +157,18 @@ class SettingsViewModel @Inject constructor(
     fun setAppLockPin(pin: String) {
         viewModelScope.launch {
             userPreferences.setAppLockPin(pin)
+        }
+    }
+
+    fun setDevOverrideDateEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferences.setDevOverrideDateEnabled(enabled)
+        }
+    }
+
+    fun setDevOverrideDate(dateStr: String) {
+        viewModelScope.launch {
+            userPreferences.setDevOverrideDate(dateStr)
         }
     }
 

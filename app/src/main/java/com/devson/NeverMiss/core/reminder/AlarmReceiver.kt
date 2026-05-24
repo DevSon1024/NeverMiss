@@ -37,7 +37,7 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 val streak = repository.getStreakById(streakId)
                 if (streak != null && !streak.isArchived && !streak.isPaused) {
-                    val today = LocalDate.now()
+                    val today = com.devson.NeverMiss.core.util.AppClock.now()
                     val todayStr = StreakCalculator.formatDate(today)
                     
                     // Check if already completed today

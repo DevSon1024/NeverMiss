@@ -18,8 +18,8 @@ class CheckAndResetMissedStreaksUseCase @Inject constructor(
 ) {
     suspend operator fun invoke() {
         val activeStreaks = repository.getActiveStreaks()
-        val nowDate = LocalDate.now()
-        val nowTime = LocalTime.now()
+        val nowDate = com.devson.NeverMiss.core.util.AppClock.now()
+        val nowTime = com.devson.NeverMiss.core.util.AppClock.nowTime()
 
         var hasChanges = false
         for (streak in activeStreaks) {

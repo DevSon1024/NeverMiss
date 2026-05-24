@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import javax.inject.Inject
+import java.time.LocalDate
+import com.devson.NeverMiss.core.util.AppClock
 
 data class HomeState(
     val activeStreaks: List<Streak> = emptyList(),
@@ -58,8 +59,8 @@ class HomeViewModel @Inject constructor(
         val isGrid = array[4] as Boolean
         val showArchived = array[5] as Boolean
 
-        val todayStr = StreakCalculator.formatDate(LocalDate.now())
-        val yesterday = LocalDate.now().minusDays(1)
+        val todayStr = StreakCalculator.formatDate(AppClock.now())
+        val yesterday = AppClock.now().minusDays(1)
         val yesterdayStr = StreakCalculator.formatDate(yesterday)
 
         // Split active and archived
@@ -86,7 +87,7 @@ class HomeViewModel @Inject constructor(
         
         val pending = filteredActive.filter { streak ->
             val isCompleted = streak.lastCompletedDate == todayStr
-            val isScheduledToday = StreakCalculator.isScheduled(streak, LocalDate.now())
+            val isScheduledToday = StreakCalculator.isScheduled(streak, AppClock.now())
             isScheduledToday && !isCompleted && !streak.isPaused
         }
 
@@ -139,21 +140,21 @@ class HomeViewModel @Inject constructor(
 
     fun completeStreak(streakId: Long) {
         viewModelScope.launch {
-            val todayStr = StreakCalculator.formatDate(LocalDate.now())
+            val todayStr = StreakCalculator.formatDate(AppClock.now())
             streakUseCases.logCompletion(streakId, todayStr, CompletionStatus.COMPLETED)
         }
     }
 
     fun skipStreak(streakId: Long) {
         viewModelScope.launch {
-            val todayStr = StreakCalculator.formatDate(LocalDate.now())
+            val todayStr = StreakCalculator.formatDate(AppClock.now())
             streakUseCases.logCompletion(streakId, todayStr, CompletionStatus.SKIPPED)
         }
     }
 
     fun freezeStreak(streakId: Long) {
         viewModelScope.launch {
-            val todayStr = StreakCalculator.formatDate(LocalDate.now())
+            val todayStr = StreakCalculator.formatDate(AppClock.now())
             streakUseCases.logCompletion(streakId, todayStr, CompletionStatus.FROZEN)
         }
     }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.DayOfWeek
 import java.time.LocalDate
+import com.devson.NeverMiss.core.util.AppClock
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -77,7 +78,7 @@ class AnalyticsViewModel @Inject constructor(
 
             // Calculate consistency for this streak
             val creationDate = StreakCalculator.parseDate(streak.creationDate)
-            val today = LocalDate.now()
+            val today = AppClock.now()
             var scheduledCount = 0
             var completedCount = 0
 
@@ -121,7 +122,7 @@ class AnalyticsViewModel @Inject constructor(
 
         // Calculate weekly rate for the last 7 days
         val weeklyRates = mutableListOf<Pair<String, Float>>()
-        val today = LocalDate.now()
+        val today = AppClock.now()
         for (i in 6 downTo 0) {
             val date = today.minusDays(i.toLong())
             val dateStr = StreakCalculator.formatDate(date)

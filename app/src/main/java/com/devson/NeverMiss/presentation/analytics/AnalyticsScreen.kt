@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
@@ -60,7 +61,7 @@ fun AnalyticsScreen(
                 title = { Text("Analytics Dashboard", color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -274,7 +275,7 @@ fun AnalyticsScreen(
                 }
 
                 // HEATMAP CALENDAR CANVAS DRAWING
-                val currentMonth = YearMonth.now()
+                val currentMonth = YearMonth.from(com.devson.NeverMiss.core.util.AppClock.now())
                 val monthLabel = currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
                 val yearLabel = currentMonth.year.toString()
 

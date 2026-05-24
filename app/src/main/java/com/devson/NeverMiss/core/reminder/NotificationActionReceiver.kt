@@ -50,7 +50,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                val todayStr = StreakCalculator.formatDate(LocalDate.now())
+                val todayStr = StreakCalculator.formatDate(com.devson.NeverMiss.core.util.AppClock.now())
                 notificationHelper.cancelNotification(streakId)
 
                 when (action) {

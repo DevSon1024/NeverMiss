@@ -107,7 +107,7 @@ class ReminderScheduler @Inject constructor(
 
     fun calculateNextReminderDateTime(
         streak: Streak,
-        nowDateTime: LocalDateTime = LocalDateTime.now()
+        nowDateTime: LocalDateTime = com.devson.NeverMiss.core.util.AppClock.nowDateTime()
     ): LocalDateTime? {
         val nowDate = nowDateTime.toLocalDate()
         val nowTime = nowDateTime.toLocalTime()

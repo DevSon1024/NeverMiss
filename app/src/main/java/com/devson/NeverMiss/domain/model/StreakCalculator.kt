@@ -13,7 +13,7 @@ object StreakCalculator {
         return try {
             LocalDate.parse(dateStr, dateFormatter)
         } catch (e: Exception) {
-            LocalDate.now()
+            com.devson.NeverMiss.core.util.AppClock.now()
         }
     }
 
@@ -39,7 +39,7 @@ object StreakCalculator {
      * Checks if the cutoff has passed for a given date.
      * Cutoff time is HH:mm. If gracePeriodUntil3AM is true, the cutoff is 03:00 AM of the NEXT day.
      */
-    fun hasCutoffPassed(streak: Streak, date: LocalDate, nowTime: LocalTime = LocalTime.now(), nowDate: LocalDate = LocalDate.now()): Boolean {
+    fun hasCutoffPassed(streak: Streak, date: LocalDate, nowTime: LocalTime = com.devson.NeverMiss.core.util.AppClock.nowTime(), nowDate: LocalDate = com.devson.NeverMiss.core.util.AppClock.now()): Boolean {
         val cutoffLocalTime = try {
             LocalTime.parse(streak.cutoffTime)
         } catch (e: Exception) {
@@ -67,8 +67,8 @@ object StreakCalculator {
     fun calculateStreaks(
         streak: Streak,
         history: List<CompletionHistory>,
-        nowDate: LocalDate = LocalDate.now(),
-        nowTime: LocalTime = LocalTime.now()
+        nowDate: LocalDate = com.devson.NeverMiss.core.util.AppClock.now(),
+        nowTime: LocalTime = com.devson.NeverMiss.core.util.AppClock.nowTime()
     ): StreakStats {
         val historyMap = history.associateBy { it.date }
         val creationLocalDate = parseDate(streak.creationDate)

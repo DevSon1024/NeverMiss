@@ -391,6 +391,94 @@ fun SettingsScreen(
                     }
                 }
 
+                // DEVELOPER ZONE SECTION
+                SettingsSectionTitle("DEVELOPER ZONE")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(0.7f)) {
+                                Text("Override Device Date", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Force streak calculations to run on a custom date", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            }
+                            Switch(
+                                checked = state.devOverrideDateEnabled,
+                                onCheckedChange = viewModel::setDevOverrideDateEnabled
+                            )
+                        }
+
+                        if (state.devOverrideDateEnabled) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Custom Date (YYYY-MM-DD)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            
+                            var dateInput by remember(state.devOverrideDate) {
+                                mutableStateOf(state.devOverrideDate.ifEmpty { java.time.LocalDate.now().toString() })
+                            }
+                            
+                            OutlinedTextField(
+                                value = dateInput,
+                                onValueChange = { 
+                                    dateInput = it
+                                    if (it.length == 10) {
+                                        try {
+                                            java.time.LocalDate.parse(it)
+                                            viewModel.setDevOverrideDate(it)
+                                        } catch (e: Exception) {
+                                            // Invalid format
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("e.g. 2026-05-24", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                singleLine = true,
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            val today = java.time.LocalDate.now()
+                                            val currentSetDate = try {
+                                                java.time.LocalDate.parse(dateInput)
+                                            } catch (e: Exception) {
+                                                today
+                                            }
+                                            android.app.DatePickerDialog(
+                                                context,
+                                                { _, year, month, dayOfMonth ->
+                                                    val selectedDateStr = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                                    dateInput = selectedDateStr
+                                                    viewModel.setDevOverrideDate(selectedDateStr)
+                                                },
+                                                currentSetDate.year,
+                                                currentSetDate.monthValue - 1,
+                                                currentSetDate.dayOfMonth
+                                            ).show()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.CalendarToday, contentDescription = "Pick Date")
+                                    }
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(48.dp))
             }
 

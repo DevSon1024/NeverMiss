@@ -153,7 +153,7 @@ class CreateStreakViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val todayStr = LocalDate.now().toString()
+                val todayStr = com.devson.NeverMiss.core.util.AppClock.now().toString()
                 val streak = Streak(
                     id = currentState.id,
                     title = currentState.title.trim(),

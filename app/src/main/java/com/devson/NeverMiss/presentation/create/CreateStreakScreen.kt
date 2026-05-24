@@ -43,7 +43,7 @@ private fun formatDateString(dateStr: String): String {
         val date = java.time.LocalDate.parse(dateStr)
         date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     } catch (e: Exception) {
-        val today = java.time.LocalDate.now()
+        val today = com.devson.NeverMiss.core.util.AppClock.now()
         today.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     }
 }
@@ -112,7 +112,7 @@ fun CreateStreakScreen(
                     emoji = state.emoji,
                     category = state.category,
                     color = state.color,
-                    creationDate = if (state.creationDate.isEmpty()) java.time.LocalDate.now().toString() else state.creationDate,
+                    creationDate = if (state.creationDate.isEmpty()) com.devson.NeverMiss.core.util.AppClock.now().toString() else state.creationDate,
                     reminderTime = state.reminderTime,
                     reminderRepeatHours = state.reminderRepeatHours,
                     persistent = state.persistent,
@@ -190,7 +190,7 @@ fun CreateStreakScreen(
                 Text("Start Date", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
-                    value = formatDateString(if (state.creationDate.isEmpty()) java.time.LocalDate.now().toString() else state.creationDate),
+                    value = formatDateString(if (state.creationDate.isEmpty()) com.devson.NeverMiss.core.util.AppClock.now().toString() else state.creationDate),
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),

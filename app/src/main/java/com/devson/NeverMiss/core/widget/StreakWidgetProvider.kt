@@ -48,7 +48,7 @@ class StreakWidgetProvider : AppWidgetProvider() {
         scope.launch {
             try {
                 val activeStreaks = repository.getActiveStreaks()
-                val today = LocalDate.now()
+                val today = com.devson.NeverMiss.core.util.AppClock.now()
                 val todayStr = StreakCalculator.formatDate(today)
 
                 val maxStreak = activeStreaks.maxOfOrNull { it.currentStreak } ?: 0

@@ -95,6 +95,28 @@ class UserPreferences @Inject constructor(
             preferences[PreferencesKeys.APP_LOCK_PIN] ?: ""
         }
 
+    val devOverrideDateEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.DEV_OVERRIDE_DATE_ENABLED] ?: false
+        }
+
+    val devOverrideDateFlow: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.DEV_OVERRIDE_DATE] ?: ""
+        }
+
     suspend fun setTheme(theme: AppTheme) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME] = theme.name
@@ -131,6 +153,18 @@ class UserPreferences @Inject constructor(
         }
     }
 
+    suspend fun setDevOverrideDateEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEV_OVERRIDE_DATE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setDevOverrideDate(dateStr: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEV_OVERRIDE_DATE] = dateStr
+        }
+    }
+
     enum class AppTheme {
         LIGHT, DARK, SYSTEM
     }
@@ -142,5 +176,7 @@ class UserPreferences @Inject constructor(
         val STREAK_FREEZES = intPreferencesKey("streak_freezes")
         val MAX_STREAK_FREEZES = intPreferencesKey("max_streak_freezes")
         val APP_LOCK_PIN = stringPreferencesKey("app_lock_pin")
+        val DEV_OVERRIDE_DATE_ENABLED = booleanPreferencesKey("dev_override_date_enabled")
+        val DEV_OVERRIDE_DATE = stringPreferencesKey("dev_override_date")
     }
 }

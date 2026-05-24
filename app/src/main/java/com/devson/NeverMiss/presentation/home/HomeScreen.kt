@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -205,6 +206,89 @@ fun HomeScreen(
                     }
                 }
 
+                // Date & Time Showcase (Default / Custom Override)
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                val isOverride = com.devson.NeverMiss.core.util.AppClock.isOverrideActive()
+                val displayDate = com.devson.NeverMiss.core.util.AppClock.now()
+                val formatter = remember(displayDate) {
+                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy")
+                }
+                val dateStr = remember(displayDate, formatter) {
+                    displayDate.format(formatter)
+                }
+                
+                var currentTimeStr by remember { mutableStateOf("") }
+                
+                LaunchedEffect(isOverride) {
+                    while (true) {
+                        val nowTime = java.time.LocalTime.now()
+                        val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("hh:mm a")
+                        currentTimeStr = nowTime.format(timeFormatter)
+                        kotlinx.coroutines.delay(1000)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (isOverride) {
+                                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            }
+                        )
+                        .border(
+                            1.dp,
+                            if (isOverride) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(14.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isOverride) Icons.Default.EditCalendar else Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (isOverride) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = dateStr,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (isOverride) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.tertiary)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "CUSTOM",
+                                    color = Color.White,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    
+                    Text(
+                        text = currentTimeStr,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 // Search Bar
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -327,7 +411,7 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    val todayStr = StreakCalculator.formatDate(LocalDate.now())
+                    val todayStr = StreakCalculator.formatDate(com.devson.NeverMiss.core.util.AppClock.now())
                     val displayStreaks = if (state.showArchived) state.archivedStreaks else state.activeStreaks
                     
                     if (state.isGridView) {
