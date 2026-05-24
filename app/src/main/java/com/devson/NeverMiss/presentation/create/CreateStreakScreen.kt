@@ -63,13 +63,13 @@ fun CreateStreakScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (streakId > 0) "Edit Streak" else "Create Streak", color = TextPrimaryDark) },
+                title = { Text(if (streakId > 0) "Edit Streak" else "Create Streak", color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextPrimaryDark)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { innerPadding ->
@@ -77,7 +77,7 @@ fun CreateStreakScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            color = ObsidianBg
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
@@ -90,7 +90,7 @@ fun CreateStreakScreen(
                     text = "LIVE PREVIEW",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
@@ -133,21 +133,21 @@ fun CreateStreakScreen(
                 }
 
                 // Title Input
-                Text("Streak Title *", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Streak Title *", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = state.title,
                     onValueChange = viewModel::onTitleChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("e.g. Read coding book, Gym, Watering plants", color = TextSecondaryDark) },
+                    placeholder = { Text("e.g. Read coding book, Gym, Watering plants", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = BorderSlate,
-                        focusedContainerColor = CardSlate,
-                        unfocusedContainerColor = CardSlate,
-                        focusedTextColor = TextPrimaryDark,
-                        unfocusedTextColor = TextPrimaryDark
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -155,20 +155,20 @@ fun CreateStreakScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Description Input
-                Text("Description", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Description", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = state.description,
                     onValueChange = viewModel::onDescriptionChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("What is the goal of this routine?", color = TextSecondaryDark) },
+                    placeholder = { Text("What is the goal of this routine?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = BorderSlate,
-                        focusedContainerColor = CardSlate,
-                        unfocusedContainerColor = CardSlate,
-                        focusedTextColor = TextPrimaryDark,
-                        unfocusedTextColor = TextPrimaryDark
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -176,7 +176,7 @@ fun CreateStreakScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Category Selection
-                Text("Category", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Category", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -187,15 +187,15 @@ fun CreateStreakScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary else CardSlate)
-                                .border(1.dp, if (isSelected) Color.Transparent else BorderSlate, RoundedCornerShape(12.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                 .clickable { viewModel.onCategoryChange(cat) }
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "${cat.defaultEmoji} ${cat.displayName.split("/").first()}",
-                                color = if (isSelected) Color.White else TextPrimaryDark,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -206,7 +206,7 @@ fun CreateStreakScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Emoji Selection Grid
-                Text("Icon / Emoji", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Icon / Emoji", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -231,7 +231,7 @@ fun CreateStreakScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Color Selection
-                Text("Theme Color", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Theme Color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -255,7 +255,7 @@ fun CreateStreakScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Divider(color = BorderSlate, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // REMINDER CONFIGURATION
@@ -263,16 +263,16 @@ fun CreateStreakScreen(
                     text = "REMINDER CONFIGURATION",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
                 // Time Selection Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -284,8 +284,8 @@ fun CreateStreakScreen(
                                 Icon(Icons.Default.Schedule, contentDescription = null, tint = SecondaryTeal)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Exact Reminder Time", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("When to alarm every day", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text("Exact Reminder Time", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("When to alarm every day", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                 }
                             }
                             Button(
@@ -311,8 +311,8 @@ fun CreateStreakScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Repeat intervals
-                        Text("Repeat Interval Hours", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Triggers alarm every X hours if task is still pending", color = TextSecondaryDark, fontSize = 11.sp)
+                        Text("Repeat Interval Hours", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Triggers alarm every X hours if task is still pending", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -325,12 +325,12 @@ fun CreateStreakScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else ObsidianBg)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
                                         .clickable { viewModel.onRepeatHoursChange(hours) }
                                         .padding(vertical = 8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(label, color = if (isSelected) Color.White else TextSecondaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(label, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -342,9 +342,9 @@ fun CreateStreakScreen(
                 // Custom Cutoff settings
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -353,8 +353,8 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Grace Period (Cutoff until 3 AM)", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Extends streak deadline into early next morning", color = TextSecondaryDark, fontSize = 11.sp)
+                                Text("Grace Period (Cutoff until 3 AM)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Extends streak deadline into early next morning", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
                             Switch(
                                 checked = state.gracePeriodUntil3AM,
@@ -370,8 +370,8 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Persistent Notification", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Notification pins to status tray until marked done", color = TextSecondaryDark, fontSize = 11.sp)
+                                Text("Persistent Notification", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Notification pins to status tray until marked done", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
                             Switch(
                                 checked = state.persistent,
@@ -387,8 +387,8 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Vibrate on Alert", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Toggle vibration signals when alarms fire", color = TextSecondaryDark, fontSize = 11.sp)
+                                Text("Vibrate on Alert", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Toggle vibration signals when alarms fire", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
                             Switch(
                                 checked = state.vibrate,

@@ -73,10 +73,11 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val navController = rememberNavController()
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        Box(modifier = Modifier.padding(innerPadding)) {
-                            NeverMissNavGraph(navController = navController)
-                        }
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        NeverMissNavGraph(navController = navController)
                     }
                 }
             }
@@ -96,7 +97,7 @@ fun AppLockScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBg)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -118,13 +119,13 @@ fun AppLockScreen(
                 text = "NeverMiss is Locked",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimaryDark
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (isError) "Incorrect PIN. Try again." else "Enter your 4-digit security PIN",
                 fontSize = 13.sp,
-                color = if (isError) AccentCoral else TextSecondaryDark
+                color = if (isError) AccentCoral else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -143,10 +144,10 @@ fun AppLockScreen(
                             if (filled) {
                                 if (isError) AccentCoral else PrimaryViolet
                             } else {
-                                CardSlate
+                                MaterialTheme.colorScheme.surfaceVariant
                             }
                         )
-                        .border(1.dp, BorderSlate, CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 )
             }
         }
@@ -177,7 +178,7 @@ fun AppLockScreen(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .clip(CircleShape)
-                                    .background(CardSlate)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                         isError = false
@@ -202,13 +203,13 @@ fun AppLockScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (key == "back") {
-                                    Icon(Icons.Default.Backspace, contentDescription = "Backspace", tint = TextPrimaryDark)
+                                    Icon(Icons.Default.Backspace, contentDescription = "Backspace", tint = MaterialTheme.colorScheme.onSurface)
                                 } else {
                                     Text(
                                         text = key,
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextPrimaryDark
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }

@@ -51,13 +51,13 @@ fun AnalyticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Analytics Dashboard", color = TextPrimaryDark) },
+                title = { Text("Analytics Dashboard", color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextPrimaryDark)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { innerPadding ->
@@ -65,7 +65,7 @@ fun AnalyticsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            color = ObsidianBg
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
@@ -78,8 +78,8 @@ fun AnalyticsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -92,7 +92,7 @@ fun AnalyticsScreen(
                             Text(
                                 text = "Overall Consistency",
                                 fontSize = 13.sp,
-                                color = TextSecondaryDark,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -124,28 +124,28 @@ fun AnalyticsScreen(
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardSlate),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Completions", fontSize = 12.sp, color = TextSecondaryDark)
-                            Text("${state.totalCompletions}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark)
+                            Text("Completions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${state.totalCompletions}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardSlate),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Icon(Icons.Default.Whatshot, contentDescription = null, tint = WarningAmber)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Max Streak", fontSize = 12.sp, color = TextSecondaryDark)
-                            Text("${state.highestActiveStreak} Days", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark)
+                            Text("Max Streak", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${state.highestActiveStreak} Days", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -155,7 +155,7 @@ fun AnalyticsScreen(
                     text = "WEEKLY RATE TRENDS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 Card(
@@ -163,8 +163,8 @@ fun AnalyticsScreen(
                         .fillMaxWidth()
                         .height(220.dp),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Box(
                         modifier = Modifier
@@ -173,9 +173,10 @@ fun AnalyticsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         if (state.weeklyCompletionRate.isEmpty()) {
-                            Text("Insufficient data", color = TextSecondaryDark)
+                            Text("Insufficient data", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             val rates = state.weeklyCompletionRate
+                            val barBgColor = MaterialTheme.colorScheme.background
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val canvasWidth = size.width
                                 val canvasHeight = size.height
@@ -190,7 +191,7 @@ fun AnalyticsScreen(
                                     
                                     // Draw background empty bar path
                                     drawRoundRect(
-                                        color = ObsidianBg,
+                                        color = barBgColor,
                                         topLeft = Offset(x, 0f),
                                         size = Size(barWidth, maxBarHeight),
                                         cornerRadius = CornerRadius(8.dp.toPx())
@@ -247,7 +248,7 @@ fun AnalyticsScreen(
                     text = "COMPLETION HEATMAP ($monthLabel $yearLabel)".uppercase(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
 
@@ -256,8 +257,8 @@ fun AnalyticsScreen(
                         .fillMaxWidth()
                         .height(280.dp),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
                         modifier = Modifier
@@ -273,7 +274,7 @@ fun AnalyticsScreen(
                             listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
                                 Text(
                                     text = day,
-                                    color = TextSecondaryDark,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(36.dp),
@@ -283,6 +284,8 @@ fun AnalyticsScreen(
                         }
 
                         // Heatmap Grid drawing Canvas
+                        val cellEmptyColor = MaterialTheme.colorScheme.background
+                        val outlineColor = MaterialTheme.colorScheme.outlineVariant
                         Canvas(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -311,7 +314,7 @@ fun AnalyticsScreen(
 
                                     // Heatmap Density Color mapping
                                     val cellColor = when (completionsCount) {
-                                        0 -> ObsidianBg
+                                        0 -> cellEmptyColor
                                         1 -> SuccessGreen.copy(alpha = 0.3f)
                                         2 -> SuccessGreen.copy(alpha = 0.6f)
                                         else -> SuccessGreen // 3+ completions is full bright green
@@ -331,7 +334,7 @@ fun AnalyticsScreen(
                                     // Subtle border if empty
                                     if (completionsCount == 0) {
                                         drawRoundRect(
-                                            color = BorderSlate,
+                                            color = outlineColor,
                                             topLeft = Offset(x, y),
                                             size = Size(boxSize, boxSize),
                                             cornerRadius = CornerRadius(8.dp.toPx()),
@@ -373,7 +376,7 @@ fun AnalyticsScreen(
                     text = "INDIVIDUAL STREAK SUCCESS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
 
@@ -381,8 +384,8 @@ fun AnalyticsScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardSlate),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Row(
                             modifier = Modifier
@@ -403,8 +406,8 @@ fun AnalyticsScreen(
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text(summary.title, fontWeight = FontWeight.Bold, color = TextPrimaryDark, fontSize = 14.sp)
-                                    Text("🔥 Max streak: ${summary.longestStreak}", fontSize = 11.sp, color = TextSecondaryDark)
+                                    Text(summary.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                    Text("🔥 Max streak: ${summary.longestStreak}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
 
@@ -415,7 +418,7 @@ fun AnalyticsScreen(
                                     color = Color(summary.color),
                                     fontSize = 16.sp
                                 )
-                                Text("Consistency", fontSize = 9.sp, color = TextSecondaryDark)
+                                Text("Consistency", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

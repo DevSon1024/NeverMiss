@@ -79,13 +79,13 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", color = TextPrimaryDark) },
+                title = { Text("Settings", color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextPrimaryDark)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ObsidianBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { innerPadding ->
@@ -93,7 +93,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            color = ObsidianBg
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
@@ -107,11 +107,11 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Application Theme", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Application Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -128,12 +128,12 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else ObsidianBg)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
                                         .clickable { viewModel.setTheme(themeEnum) }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(label, color = if (isSelected) Color.White else TextSecondaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(label, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -146,8 +146,8 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(0.7f)) {
-                                    Text("Dynamic Colors", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("Use wallpaper palette colors (Android 12+)", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text("Dynamic Colors", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("Use wallpaper palette colors (Android 12+)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                 }
                                 Switch(
                                     checked = state.dynamicColorsEnabled,
@@ -163,12 +163,12 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Custom Snooze Duration", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Time to wait when clicking Snooze on a reminder", color = TextSecondaryDark, fontSize = 11.sp)
+                        Text("Custom Snooze Duration", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Time to wait when clicking Snooze on a reminder", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -181,20 +181,20 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else ObsidianBg)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
                                         .clickable { viewModel.setSnoozeDuration(mins) }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("${mins}m", color = if (isSelected) Color.White else TextSecondaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("${mins}m", color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("Max Streak Freezes Limit", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Maximum freeze counts you are allowed to accumulate", color = TextSecondaryDark, fontSize = 11.sp)
+                        Text("Max Streak Freezes Limit", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Maximum freeze counts you are allowed to accumulate", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -207,12 +207,12 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else ObsidianBg)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
                                         .clickable { viewModel.setMaxStreakFreezes(limit) }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("$limit Coins", color = if (isSelected) Color.White else TextSecondaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("$limit Coins", color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -224,8 +224,8 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -239,12 +239,12 @@ fun SettingsScreen(
                             Icon(Icons.Default.Lock, contentDescription = null, tint = SecondaryTeal)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("App Lock PIN", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("App Lock PIN", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 val statusStr = if (state.appLockPin.isEmpty()) "Disabled" else "Enabled (Tap to change/disable)"
-                                Text(statusStr, color = TextSecondaryDark, fontSize = 11.sp)
+                                Text(statusStr, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
                         }
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondaryDark)
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -253,8 +253,8 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column {
                         PermissionShortcutItem(
@@ -268,7 +268,7 @@ fun SettingsScreen(
                                 context.startActivity(intent)
                             }
                         )
-                        Divider(color = BorderSlate, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
                         PermissionShortcutItem(
                             title = "Exact Alarms Permission",
                             subtitle = "Required for reliable exact alarms (Android 12+)",
@@ -285,7 +285,7 @@ fun SettingsScreen(
                                 }
                             }
                         )
-                        Divider(color = BorderSlate, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
                         PermissionShortcutItem(
                             title = "Ignore Battery Optimizations",
                             subtitle = "Prevents OS from killing background alarms",
@@ -303,8 +303,8 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column {
                         Row(
@@ -338,13 +338,13 @@ fun SettingsScreen(
                                 Icon(Icons.Default.CloudDownload, contentDescription = null, tint = SuccessGreen)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Export Backup JSON", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("Serializes database and copies text to clipboard", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text("Export Backup JSON", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("Serializes database and copies text to clipboard", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                 }
                             }
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondaryDark)
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Divider(color = BorderSlate, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -357,11 +357,11 @@ fun SettingsScreen(
                                 Icon(Icons.Default.CloudUpload, contentDescription = null, tint = PrimaryViolet)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Import Backup JSON", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("Paste text to restore all streaks and history", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text("Import Backup JSON", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("Paste text to restore all streaks and history", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                 }
                             }
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondaryDark)
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -375,10 +375,10 @@ fun SettingsScreen(
             if (showPinDialog) {
                 AlertDialog(
                     onDismissRequest = { showPinDialog = false; enteredPin = ""; confirmPin = "" },
-                    title = { Text("Configure PIN Lock", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+                    title = { Text("Configure PIN Lock", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Enter 4-digit PIN (leave empty to disable App Lock):", color = TextSecondaryDark, fontSize = 12.sp)
+                            Text("Enter 4-digit PIN (leave empty to disable App Lock):", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             OutlinedTextField(
                                 value = enteredPin,
                                 onValueChange = { if (it.length <= 4) enteredPin = it },
@@ -387,9 +387,9 @@ fun SettingsScreen(
                                 visualTransformation = PasswordVisualTransformation(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = BorderSlate,
-                                    focusedTextColor = TextPrimaryDark,
-                                    unfocusedTextColor = TextPrimaryDark
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                             if (enteredPin.isNotEmpty()) {
@@ -401,9 +401,9 @@ fun SettingsScreen(
                                     visualTransformation = PasswordVisualTransformation(),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = BorderSlate,
-                                        focusedTextColor = TextPrimaryDark,
-                                        unfocusedTextColor = TextPrimaryDark
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                     )
                                 )
                             }
@@ -432,10 +432,10 @@ fun SettingsScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showPinDialog = false; enteredPin = ""; confirmPin = "" }) {
-                            Text("Cancel", color = TextSecondaryDark)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     },
-                    containerColor = CardSlate
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
 
@@ -443,22 +443,22 @@ fun SettingsScreen(
             if (showImportDialog) {
                 AlertDialog(
                     onDismissRequest = { showImportDialog = false; importText = "" },
-                    title = { Text("Restore Backup JSON", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+                    title = { Text("Restore Backup JSON", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Paste the copied backup JSON text below. WARNING: This clears all existing streaks!", color = TextSecondaryDark, fontSize = 12.sp)
+                            Text("Paste the copied backup JSON text below. WARNING: This clears all existing streaks!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             OutlinedTextField(
                                 value = importText,
                                 onValueChange = { importText = it },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(180.dp),
-                                placeholder = { Text("Paste JSON here...", color = TextSecondaryDark) },
+                                placeholder = { Text("Paste JSON here...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = BorderSlate,
-                                    focusedTextColor = TextPrimaryDark,
-                                    unfocusedTextColor = TextPrimaryDark
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                         }
@@ -480,10 +480,10 @@ fun SettingsScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showImportDialog = false; importText = "" }) {
-                            Text("Cancel", color = TextSecondaryDark)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     },
-                    containerColor = CardSlate
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }
@@ -496,7 +496,7 @@ fun SettingsSectionTitle(title: String) {
         text = title,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
-        color = TextSecondaryDark,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
         modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
     )
 }
@@ -517,13 +517,13 @@ fun PermissionShortcutItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = TextSecondaryDark)
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(title, color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(subtitle, color = TextSecondaryDark, fontSize = 11.sp)
+                Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondaryDark)
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

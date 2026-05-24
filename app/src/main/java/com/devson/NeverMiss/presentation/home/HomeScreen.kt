@@ -131,8 +131,8 @@ fun HomeScreen(
         },
         bottomBar = {
             BottomAppBar(
-                containerColor = ObsidianBg,
-                contentColor = TextSecondaryDark,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.height(72.dp)
             ) {
                 Row(
@@ -156,7 +156,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ObsidianBg)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
             Column(
@@ -176,12 +176,12 @@ fun HomeScreen(
                             text = "NeverMiss",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimaryDark
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Consistency builds greatness",
                             fontSize = 13.sp,
-                            color = TextSecondaryDark
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
 
@@ -189,7 +189,7 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(CardSlate)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -197,7 +197,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${state.freezesRemaining} Freezes",
-                            color = TextPrimaryDark,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -212,24 +212,24 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp)),
-                    placeholder = { Text("Search streaks...", color = TextSecondaryDark) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = TextSecondaryDark) },
+                    placeholder = { Text("Search streaks...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     trailingIcon = {
                         IconButton(onClick = viewModel::onToggleLayout) {
                             Icon(
                                 imageVector = if (state.isGridView) Icons.Default.List else Icons.Default.GridView,
                                 contentDescription = "Toggle Layout",
-                                tint = TextSecondaryDark
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = BorderSlate,
-                        focusedContainerColor = CardSlate,
-                        unfocusedContainerColor = CardSlate,
-                        focusedTextColor = TextPrimaryDark,
-                        unfocusedTextColor = TextPrimaryDark
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -248,8 +248,8 @@ fun HomeScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = Color.White,
-                                containerColor = CardSlate,
-                                labelColor = TextSecondaryDark
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -261,8 +261,8 @@ fun HomeScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = Color.White,
-                                containerColor = CardSlate,
-                                labelColor = TextSecondaryDark
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -281,8 +281,8 @@ fun HomeScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("✨", fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("No streaks created yet.", color = TextSecondaryDark, textAlign = TextAlign.Center)
-                            Text("Tap the + button to build consistency!", color = TextSecondaryDark, fontSize = 12.sp, textAlign = TextAlign.Center)
+                            Text("No streaks created yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                            Text("Tap the + button to build consistency!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
                         }
                     }
                 } else {
@@ -327,7 +327,7 @@ fun HomeScreen(
                             // Section: Pending Today
                             if (state.pendingToday.isNotEmpty()) {
                                 item {
-                                    Text("Pending Today", fontWeight = FontWeight.Bold, color = TextPrimaryDark, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    Text("Pending Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                 }
                                 items(state.pendingToday) { streak ->
                                     StreakCard(
@@ -348,7 +348,7 @@ fun HomeScreen(
                             // Section: Completed Today
                             if (state.completedToday.isNotEmpty()) {
                                 item {
-                                    Text("Completed Today", fontWeight = FontWeight.Bold, color = TextPrimaryDark, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    Text("Completed Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                 }
                                 items(state.completedToday) { streak ->
                                     StreakCard(
@@ -369,7 +369,7 @@ fun HomeScreen(
                             }
                             if (otherStreaks.isNotEmpty()) {
                                 item {
-                                    Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = TextPrimaryDark, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
+                                    Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                 }
                                 items(otherStreaks) { streak ->
                                     StreakCard(
@@ -437,11 +437,11 @@ fun StreakCard(
                 }
             ),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = CardSlate),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = if (isCompletedToday) {
             androidx.compose.foundation.BorderStroke(1.5.dp, Color(streak.color))
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, BorderSlate)
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -465,7 +465,7 @@ fun StreakCard(
                         Text(
                             text = streak.title,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimaryDark,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 16.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -473,7 +473,7 @@ fun StreakCard(
                         Text(
                             text = streak.category.displayName.split("/").first(),
                             fontSize = 11.sp,
-                            color = TextSecondaryDark
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -491,7 +491,7 @@ fun StreakCard(
                             Text(
                                 text = "Max ${streak.longestStreak}",
                                 fontSize = 9.sp,
-                                color = TextSecondaryDark
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -500,22 +500,22 @@ fun StreakCard(
                     
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = TextSecondaryDark)
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(CardSlate)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             DropdownMenuItem(
-                                text = { Text(if (streak.isPaused) "Resume" else "Pause", color = TextPrimaryDark) },
+                                text = { Text(if (streak.isPaused) "Resume" else "Pause", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = { onPause(); showMenu = false },
-                                leadingIcon = { Icon(if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause, contentDescription = null, tint = TextSecondaryDark) }
+                                leadingIcon = { Icon(if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (streak.isArchived) "Unarchive" else "Archive", color = TextPrimaryDark) },
+                                text = { Text(if (streak.isArchived) "Unarchive" else "Archive", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = { onArchive(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null, tint = TextSecondaryDark) }
+                                leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete", color = AccentCoral) },
@@ -539,7 +539,7 @@ fun StreakCard(
                 Text(
                     text = nextRemStr,
                     fontSize = 11.sp,
-                    color = TextSecondaryDark
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (isCompletedToday) {
@@ -560,12 +560,12 @@ fun StreakCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(TextSecondaryDark.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "PAUSED",
-                            color = TextSecondaryDark,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
