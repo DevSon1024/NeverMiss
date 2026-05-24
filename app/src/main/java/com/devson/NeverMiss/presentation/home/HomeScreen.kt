@@ -40,6 +40,7 @@ import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.ui.theme.*
+import com.devson.NeverMiss.presentation.util.getCategoryIcon
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import kotlin.random.Random
@@ -254,11 +255,20 @@ fun HomeScreen(
                             selected = state.selectedCategory == null,
                             onClick = { viewModel.onCategorySelected(null) },
                             label = { Text("All") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Category,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = Color.White,
+                                selectedLeadingIconColor = Color.White,
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -266,12 +276,21 @@ fun HomeScreen(
                         FilterChip(
                             selected = state.selectedCategory == cat.name,
                             onClick = { viewModel.onCategorySelected(cat.name) },
-                            label = { Text("${cat.defaultEmoji} ${cat.displayName.split("/").first()}") },
+                            label = { Text(cat.displayName.split("/").first()) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = getCategoryIcon(cat),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = Color.White,
+                                selectedLeadingIconColor = Color.White,
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -290,7 +309,12 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(if (state.showArchived) "📁" else "✨", fontSize = 48.sp)
+                            Icon(
+                                imageVector = if (state.showArchived) Icons.Default.FolderOpen else Icons.Default.Inbox,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = if (state.showArchived) "No archived streaks found." else "No streaks created yet.",
@@ -524,12 +548,21 @@ fun StreakCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Streak Number Count
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "🔥 ${streak.currentStreak}",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp,
-                            color = Color(streak.color)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Whatshot,
+                                contentDescription = "Streak",
+                                tint = Color(streak.color),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${streak.currentStreak}",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 18.sp,
+                                color = Color(streak.color)
+                            )
+                        }
                         if (streak.longestStreak > 0) {
                             Text(
                                 text = "Max ${streak.longestStreak}",

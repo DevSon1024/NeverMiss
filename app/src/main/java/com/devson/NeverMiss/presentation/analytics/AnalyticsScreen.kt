@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -139,7 +140,12 @@ fun AnalyticsScreen(
                                 .background(PrimaryViolet.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("⚡", fontSize = 32.sp)
+                            Icon(
+                                imageVector = Icons.Default.FlashOn,
+                                contentDescription = null,
+                                tint = PrimaryViolet,
+                                modifier = Modifier.size(32.dp)
+                            )
                         }
                     }
                 }
@@ -435,7 +441,16 @@ fun AnalyticsScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(summary.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                    Text("🔥 Max streak: ${summary.longestStreak}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Whatshot,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Max streak: ${summary.longestStreak}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                             }
 

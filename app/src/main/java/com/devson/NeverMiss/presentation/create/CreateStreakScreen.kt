@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.ui.theme.*
+import com.devson.NeverMiss.presentation.util.getCategoryIcon
 
 private val CommonEmojis = listOf(
     "🔥", "💪", "💊", "💻", "🦉", "🪴", "🏆", "🔄", "📚", "🍏",
@@ -224,12 +225,24 @@ fun CreateStreakScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "${cat.defaultEmoji} ${cat.displayName.split("/").first()}",
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = getCategoryIcon(cat),
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = cat.displayName.split("/").first(),
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
