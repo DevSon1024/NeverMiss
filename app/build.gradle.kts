@@ -53,7 +53,9 @@ android {
             }
         }
     }
-
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
     buildTypes {
         debug {
             isMinifyEnabled = false

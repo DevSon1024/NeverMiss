@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+NeverMiss_KeyStores
+/*.txt
+*.log
