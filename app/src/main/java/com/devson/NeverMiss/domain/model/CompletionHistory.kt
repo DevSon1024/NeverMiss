@@ -1,7 +1,9 @@
 package com.devson.NeverMiss.domain.model
 
+import androidx.compose.runtime.Immutable
 import com.devson.NeverMiss.data.local.db.CompletionHistoryEntity
 
+@Immutable
 data class CompletionHistory(
     val id: Long = 0L,
     val streakId: Long,

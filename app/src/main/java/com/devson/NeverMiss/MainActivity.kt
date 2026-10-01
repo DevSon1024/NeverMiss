@@ -27,6 +27,10 @@ import com.devson.NeverMiss.data.local.preferences.UserPreferences
 import com.devson.NeverMiss.navigation.NeverMissNavGraph
 import com.devson.NeverMiss.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
+import com.devson.NeverMiss.core.reminder.ReminderScheduler
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,9 +39,18 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userPreferences: UserPreferences
 
+    @Inject
+    lateinit var reminderScheduler: ReminderScheduler
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Background reschedule active reminders on app start
+        lifecycleScope.launch(Dispatchers.IO) {
+            reminderScheduler.scheduleAllActiveReminders()
+        }
+
         setContent {
             val themeState by userPreferences.themeFlow.collectAsState(initial = UserPreferences.AppTheme.SYSTEM)
             val dynamicColorState by userPreferences.dynamicColorsFlow.collectAsState(initial = true)

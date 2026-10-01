@@ -3,7 +3,6 @@ package com.devson.NeverMiss.core.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.devson.NeverMiss.domain.repository.StreakRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,9 +12,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
-
-    @Inject
-    lateinit var repository: StreakRepository
 
     @Inject
     lateinit var reminderScheduler: ReminderScheduler
@@ -28,10 +24,7 @@ class BootReceiver : BroadcastReceiver() {
             val pendingResult = goAsync()
             scope.launch {
                 try {
-                    val activeStreaks = repository.getActiveStreaks()
-                    for (streak in activeStreaks) {
-                        reminderScheduler.scheduleNextAlarm(streak.id)
-                    }
+                    reminderScheduler.scheduleAllActiveReminders()
                 } finally {
                     pendingResult.finish()
                 }

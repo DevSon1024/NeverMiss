@@ -1,5 +1,10 @@
 package com.devson.NeverMiss.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -27,7 +32,31 @@ fun NeverMissNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        enterTransition = {
+            fadeIn(animationSpec = tween(220)) + slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth / 4 },
+                animationSpec = tween(220)
+            )
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
+                targetOffsetX = { fullWidth -> -fullWidth / 4 },
+                animationSpec = tween(180)
+            )
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(220)) + slideInHorizontally(
+                initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                animationSpec = tween(220)
+            )
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth / 4 },
+                animationSpec = tween(180)
+            )
+        }
     ) {
         composable(route = Screen.Home.route) {
             HomeScreen(

@@ -22,6 +22,9 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import javax.inject.Inject
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class SettingsState(
     val theme: UserPreferences.AppTheme = UserPreferences.AppTheme.SYSTEM,
     val dynamicColorsEnabled: Boolean = true,

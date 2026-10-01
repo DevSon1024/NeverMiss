@@ -5,10 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.media.AudioAttributes
-import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.devson.NeverMiss.MainActivity
@@ -26,92 +22,28 @@ class NotificationHelper @Inject constructor(
 
     companion object {
         const val CHANNEL_REMINDERS_ID = "streak_reminders"
-        const val CHANNEL_DANGER_ID = "danger_reminders"
-        const val CHANNEL_PERSISTENT_ID = "persistent_reminders"
     }
 
     init {
-        createNotificationChannels()
+        createNotificationChannel()
     }
 
-    private fun createNotificationChannels() {
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Channel 1: Standard Reminders
-            val standardChannel = NotificationChannel(
+            val channel = NotificationChannel(
                 CHANNEL_REMINDERS_ID,
-                "Streak Reminders",
+                "Streak Daily Reminders",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Standard reminders to complete your active streaks"
+                description = "Pop-up notifications to log your daily streaks"
                 enableLights(true)
-                lightColor = Color.CYAN
                 enableVibration(true)
             }
-
-            // Channel 2: Danger Warnings
-            val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-                .build()
-            
-            val dangerChannel = NotificationChannel(
-                CHANNEL_DANGER_ID,
-                "Urgent Warnings",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Critical alerts before your streak is about to break"
-                enableLights(true)
-                lightColor = Color.RED
-                enableVibration(true)
-                setSound(alarmSound, audioAttributes)
-            }
-
-            // Channel 3: Persistent Notifications
-            val persistentChannel = NotificationChannel(
-                CHANNEL_PERSISTENT_ID,
-                "Ongoing Reminders",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Pinned reminders that stay in the notification tray until marked done"
-            }
-
-            notificationManager.createNotificationChannel(standardChannel)
-            notificationManager.createNotificationChannel(dangerChannel)
-            notificationManager.createNotificationChannel(persistentChannel)
+            notificationManager.createNotificationChannel(channel)
         }
     }
 
-    fun showReminderNotification(streak: Streak, message: String) {
-        val channelId = if (streak.persistent) CHANNEL_PERSISTENT_ID else CHANNEL_REMINDERS_ID
-        val builder = buildNotification(streak, message, channelId)
-        
-        if (streak.persistent) {
-            builder.setOngoing(true)
-        }
-
-        notificationManager.notify(streak.id.toInt(), builder.build())
-    }
-
-    fun showDangerNotification(streak: Streak, message: String) {
-        val builder = buildNotification(streak, message, CHANNEL_DANGER_ID)
-            .setColor(Color.RED)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-
-        notificationManager.notify(streak.id.toInt() + 100000, builder.build())
-    }
-
-    fun cancelNotification(streakId: Long) {
-        notificationManager.cancel(streakId.toInt())
-        notificationManager.cancel(streakId.toInt() + 100000)
-    }
-
-    private fun buildNotification(
-        streak: Streak,
-        message: String,
-        channelId: String
-    ): NotificationCompat.Builder {
+    fun showReminderNotification(streak: Streak, customMessage: String? = null) {
         val mainActivityIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("STREAK_ID", streak.id)
@@ -124,29 +56,20 @@ class NotificationHelper @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val soundUri = streak.notificationSound?.let { Uri.parse(it) } 
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val message = customMessage ?: "Time to complete your routine: ${streak.title}!"
 
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // System icon fallback
+        val builder = NotificationCompat.Builder(context, CHANNEL_REMINDERS_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("${streak.emoji} ${streak.title}")
             .setContentText(message)
             .setContentIntent(contentPendingIntent)
-            .setAutoCancel(!streak.persistent)
+            .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setSound(soundUri)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
 
-        if (streak.vibrate) {
-            builder.setVibrate(longArrayOf(0, 300, 150, 300))
-        } else {
-            builder.setVibrate(null)
-        }
-
-        // Add Quick Action Buttons
+        // Quick Action Buttons
         val doneIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_DONE)
         val snoozeIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_SNOOZE)
-        val skipIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_SKIP)
-        val freezeIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_FREEZE)
 
         builder.addAction(
             android.R.drawable.ic_menu_save,
@@ -155,21 +78,15 @@ class NotificationHelper @Inject constructor(
         )
         builder.addAction(
             android.R.drawable.ic_menu_recent_history,
-            "Snooze",
+            "Snooze 10m",
             snoozeIntent
         )
-        builder.addAction(
-            android.R.drawable.ic_menu_close_clear_cancel,
-            "Skip",
-            skipIntent
-        )
-        builder.addAction(
-            android.R.drawable.ic_menu_gallery,
-            "Freeze",
-            freezeIntent
-        )
 
-        return builder
+        notificationManager.notify(streak.id.toInt(), builder.build())
+    }
+
+    fun cancelNotification(streakId: Long) {
+        notificationManager.cancel(streakId.toInt())
     }
 
     private fun createActionIntent(streakId: Long, actionName: String): PendingIntent {

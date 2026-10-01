@@ -1,6 +1,9 @@
 package com.devson.NeverMiss.ui.screens
 
 import android.app.TimePickerDialog
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,7 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,29 +31,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.devson.NeverMiss.core.util.AppClock
-import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.ui.util.getCategoryIcon
 import com.devson.NeverMiss.viewmodel.CreateStreakViewModel
-import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 private val CommonEmojis = listOf(
     "🔥", "💪", "💊", "💻", "🦉", "🪴", "🏆", "🔄", "📚", "🍏",
-    "💧", "🧠", "🏃", "🧘", "🍳", "🧹", "🐕", "🐈", "🎨", "🎸", "💰", "✨"
+    "💧", "🧠", "🏃", "🧘", "🍳", "🧹", "🎨", "🎸", "💰", "✨"
 )
 
-private fun formatDateString(dateStr: String): String {
-    return try {
-        val date = LocalDate.parse(dateStr)
-        date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-    } catch (e: Exception) {
-        val today = AppClock.now()
-        today.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-    }
-}
+private val WeekDays = listOf(
+    1 to "Mon", 2 to "Tue", 3 to "Wed", 4 to "Thu", 5 to "Fri", 6 to "Sat", 7 to "Sun"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,10 +73,21 @@ fun CreateStreakScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (streakId > 0) "Edit Streak" else "Create Streak", color = MaterialTheme.colorScheme.onSurface) },
+                title = {
+                    Text(
+                        text = if (streakId > 0) "Edit Streak" else "Create Streak",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -97,229 +104,232 @@ fun CreateStreakScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // LIVE PREVIEW CARD
-                Text(
-                    text = "LIVE PREVIEW",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                // Construct a mock streak for preview purposes
-                val previewStreak = Streak(
-                    title = if (state.title.isEmpty()) "Your Streak Title" else state.title,
-                    description = state.description,
-                    emoji = state.emoji,
-                    category = state.category,
-                    color = state.color,
-                    creationDate = if (state.creationDate.isEmpty()) AppClock.now().toString() else state.creationDate,
-                    reminderTime = state.reminderTime,
-                    reminderRepeatHours = state.reminderRepeatHours,
-                    persistent = state.persistent,
-                    currentStreak = 0,
-                    longestStreak = 0
-                )
-                
-                // Renders the actual card layout used in HomeScreen
-                StreakCard(
-                    streak = previewStreak,
-                    isCompletedToday = false,
-                    onClick = {},
-                    onLongClick = {},
-                    onOptionsClick = {}
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Error Message
-                if (state.errorMessage != null) {
-                    Text(
-                        text = state.errorMessage!!,
-                        color = AccentCoral,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+                // Error Notification
+                AnimatedVisibility(
+                    visible = state.errorMessage != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    state.errorMessage?.let { msg ->
+                        Surface(
+                            color = AccentCoral.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, AccentCoral.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = msg,
+                                color = AccentCoral,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
                 }
 
-                // Title Input
-                Text("Streak Title *", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = state.title,
-                    onValueChange = viewModel::onTitleChange,
+                // SECTION 1: EMOJI & TITLE CARD
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("e.g. Read coding book, Gym, Watering plants", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Description Input
-                Text("Description", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = state.description,
-                    onValueChange = viewModel::onDescriptionChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("What is the goal of this routine?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Start Date (Read-only)
-                Text("Start Date", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = formatDateString(if (state.creationDate.isEmpty()) AppClock.now().toString() else state.creationDate),
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Category Selection
-                Text("Category", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    items(StreakCategory.entries.toTypedArray()) { cat ->
-                        val isSelected = state.category == cat
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                .clickable { viewModel.onCategoryChange(cat) }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                            // Selected Emoji Avatar
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(state.color).copy(alpha = 0.18f))
+                                    .border(1.5.dp, Color(state.color), CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = getCategoryIcon(cat),
-                                    contentDescription = null,
-                                    tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = cat.displayName.split("/").first(),
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Text(state.emoji, fontSize = 28.sp)
+                            }
+
+                            // Title Field
+                            OutlinedTextField(
+                                value = state.title,
+                                onValueChange = viewModel::onTitleChange,
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("e.g. Morning Workout", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                singleLine = true,
+                                label = { Text("Streak Title *") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                        }
+
+                        // Emoji Picker Row
+                        Text("Select Icon", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(CommonEmojis, key = { it }) { emoji ->
+                                val isSelected = state.emoji == emoji
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent)
+                                        .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape)
+                                        .clickable { viewModel.onEmojiChange(emoji) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(emoji, fontSize = 20.sp)
+                                }
+                            }
+                        }
+
+                        // Color Picker Palette
+                        Text("Accent Color", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(StreakColors, key = { it.toArgb() }) { color ->
+                                val isSelected = state.color == color.toArgb()
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .border(
+                                            2.dp,
+                                            if (isSelected) Color.White else Color.Transparent,
+                                            CircleShape
+                                        )
+                                        .clickable { viewModel.onColorChange(color.toArgb()) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Emoji Selection Grid
-                Text("Icon / Emoji", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(CommonEmojis) { emoji ->
-                        val isSelected = state.emoji == emoji
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent)
-                                .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape)
-                                .clickable { viewModel.onEmojiChange(emoji) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(emoji, fontSize = 20.sp)
+                // SECTION 2: CATEGORY SELECTOR
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Category", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(StreakCategory.entries.toTypedArray(), key = { it.name }) { cat ->
+                            val isSelected = state.category == cat
+                            Surface(
+                                selected = isSelected,
+                                onClick = { viewModel.onCategoryChange(cat) },
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                border = BorderStroke(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = getCategoryIcon(cat),
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = cat.displayName.split("/").first(),
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Color Selection
-                Text("Theme Color", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(StreakColors) { color ->
-                        val isSelected = state.color == color.toArgb()
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .border(
-                                    2.dp,
-                                    if (isSelected) Color.White else Color.Transparent,
-                                    CircleShape
-                                )
-                                .clickable { viewModel.onColorChange(color.toArgb()) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // REMINDER CONFIGURATION
-                Text(
-                    text = "REMINDER CONFIGURATION",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Time Selection Card
+                // SECTION 3: SCHEDULE & DAILY REMINDER TIMER
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("SCHEDULE & DAILY REMINDER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        // Days Selector (Everyday vs Custom Days)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Repeat Days", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                FilterChip(
+                                    selected = state.daysOfWeek.isEmpty(),
+                                    onClick = viewModel::setEveryday,
+                                    label = { Text("Everyday") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                WeekDays.forEach { (dayInt, label) ->
+                                    val isSelected = state.daysOfWeek.contains(dayInt) || state.daysOfWeek.isEmpty()
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
+                                            .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                            .clickable { viewModel.toggleDayOfWeek(dayInt) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label.first().toString(),
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+
+                        // Reminder Time Picker
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -329,141 +339,83 @@ fun CreateStreakScreen(
                                 Icon(Icons.Default.Schedule, contentDescription = null, tint = SecondaryTeal)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Exact Reminder Time", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("When to alarm every day", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                    Text("Reminder Timer", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Sends daily popup notification", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
+
+                            // Formatted Time Button
+                            val formattedTime = remember(state.reminderTime) {
+                                try {
+                                    val parsed = LocalTime.parse(state.reminderTime)
+                                    parsed.format(DateTimeFormatter.ofPattern("hh:mm a"))
+                                } catch (e: Exception) {
+                                    state.reminderTime
+                                }
+                            }
+
                             Button(
                                 onClick = {
-                                    val currentHour = state.reminderTime.split(":").first().toIntOrNull() ?: 10
-                                    val currentMinute = state.reminderTime.split(":").last().toIntOrNull() ?: 0
+                                    val currentHour = state.reminderTime.split(":").firstOrNull()?.toIntOrNull() ?: 10
+                                    val currentMin = state.reminderTime.split(":").lastOrNull()?.toIntOrNull() ?: 0
                                     TimePickerDialog(
                                         context,
                                         { _, hour, minute ->
                                             viewModel.onReminderTimeChange(String.format("%02d:%02d", hour, minute))
                                         },
                                         currentHour,
-                                        currentMinute,
-                                        true
+                                        currentMin,
+                                        false
                                     ).show()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(state.reminderTime, color = Color.White)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Repeat intervals
-                        Text("Repeat Interval Hours", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Triggers alarm every X hours if task is still pending", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val repeatOptions = listOf(0 to "None", 1 to "1h", 2 to "2h", 4 to "4h", 6 to "6h")
-                            repeatOptions.forEach { (hours, label) ->
-                                val isSelected = state.reminderRepeatHours == hours
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
-                                        .clickable { viewModel.onRepeatHoursChange(hours) }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(label, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
+                                Text(formattedTime, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Custom Cutoff settings
-                Card(
+                // SECTION 4: DESCRIPTION / GOAL (OPTIONAL)
+                OutlinedTextField(
+                    value = state.description,
+                    onValueChange = viewModel::onDescriptionChange,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Grace Period (Cutoff until 3 AM)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Extends streak deadline into early next morning", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                            }
-                            Switch(
-                                checked = state.gracePeriodUntil3AM,
-                                onCheckedChange = viewModel::onGracePeriodChange
-                            )
-                        }
+                    label = { Text("Description / Goal (Optional)") },
+                    placeholder = { Text("Why is this routine important to you?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Persistent Notification", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Notification pins to status tray until marked done", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                            }
-                            Switch(
-                                checked = state.persistent,
-                                onCheckedChange = viewModel::onPersistentChange
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(0.7f)) {
-                                Text("Vibrate on Alert", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text("Toggle vibration signals when alarms fire", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                            }
-                            Switch(
-                                checked = state.vibrate,
-                                onCheckedChange = viewModel::onVibrateChange
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Save button
+                // SAVE BUTTON
                 Button(
                     onClick = viewModel::saveStreak,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(54.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = if (streakId > 0) "Save Changes" else "Start Streak",
+                        text = if (streakId > 0) "Save Changes" else "Start Routine",
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }

@@ -20,7 +20,11 @@ mockk = "1.13.12"
 turbine = "1.1.0"
 coroutinesTest = "1.8.1"
 
+navigationCompose = "2.8.5"
+navigation = "2.8.5"
+
 [libraries]
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

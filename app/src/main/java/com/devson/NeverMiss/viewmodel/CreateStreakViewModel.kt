@@ -1,5 +1,6 @@
 package com.devson.NeverMiss.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devson.NeverMiss.core.util.AppClock
@@ -15,26 +16,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@Immutable
 data class CreateStreakState(
     val id: Long = 0L,
     val title: String = "",
     val description: String = "",
     val emoji: String = "✨",
     val category: StreakCategory = StreakCategory.CUSTOM,
-    val color: Int = 0xFF6200EE.toInt(), // Default Purple
-    val creationDate: String = "", // yyyy-MM-dd
-    val repeatIntervalDays: Int = 1,
-    val daysOfWeek: List<Int> = emptyList(), // 1=Mon, 7=Sun
+    val color: Int = 0xFF6200EE.toInt(),
+    val creationDate: String = "",
+    val daysOfWeek: List<Int> = emptyList(), // empty = Everyday, 1=Mon .. 7=Sun
     val reminderTime: String = "10:00", // HH:mm
-    val reminderRepeatHours: Int = 0,
-    val remindUntilDone: Boolean = false,
-    val dangerReminderMinutes: Int = 0,
-    val cutoffTime: String = "00:00", // HH:mm
-    val gracePeriodUntil3AM: Boolean = false,
-    val notificationSound: String? = null,
-    val vibrate: Boolean = true,
-    val silent: Boolean = false,
-    val persistent: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null
 )
@@ -61,18 +53,8 @@ class CreateStreakViewModel @Inject constructor(
                         category = streak.category,
                         color = streak.color,
                         creationDate = streak.creationDate,
-                        repeatIntervalDays = streak.repeatIntervalDays,
                         daysOfWeek = streak.daysOfWeek,
-                        reminderTime = streak.reminderTime,
-                        reminderRepeatHours = streak.reminderRepeatHours,
-                        remindUntilDone = streak.remindUntilDone,
-                        dangerReminderMinutes = streak.dangerReminderMinutes,
-                        cutoffTime = streak.cutoffTime,
-                        gracePeriodUntil3AM = streak.gracePeriodUntil3AM,
-                        notificationSound = streak.notificationSound,
-                        vibrate = streak.vibrate,
-                        silent = streak.silent,
-                        persistent = streak.persistent
+                        reminderTime = streak.reminderTime
                     )
                 }
             }
@@ -99,8 +81,8 @@ class CreateStreakViewModel @Inject constructor(
         _state.update { it.copy(color = color) }
     }
 
-    fun onIntervalChange(days: Int) {
-        _state.update { it.copy(repeatIntervalDays = days, daysOfWeek = emptyList()) }
+    fun setEveryday() {
+        _state.update { it.copy(daysOfWeek = emptyList()) }
     }
 
     fun toggleDayOfWeek(day: Int) {
@@ -111,7 +93,7 @@ class CreateStreakViewModel @Inject constructor(
             } else {
                 list.add(day)
             }
-            currentState.copy(daysOfWeek = list.sorted(), repeatIntervalDays = 1)
+            currentState.copy(daysOfWeek = list.sorted())
         }
     }
 
@@ -119,40 +101,20 @@ class CreateStreakViewModel @Inject constructor(
         _state.update { it.copy(reminderTime = time) }
     }
 
-    fun onRepeatHoursChange(hours: Int) {
-        _state.update { it.copy(reminderRepeatHours = hours) }
-    }
-
-    fun onRemindUntilDoneChange(enabled: Boolean) {
-        _state.update { it.copy(remindUntilDone = enabled) }
-    }
-
-    fun onCutoffTimeChange(time: String) {
-        _state.update { it.copy(cutoffTime = time) }
-    }
-
-    fun onGracePeriodChange(enabled: Boolean) {
-        _state.update { it.copy(gracePeriodUntil3AM = enabled) }
-    }
-
-    fun onVibrateChange(enabled: Boolean) {
-        _state.update { it.copy(vibrate = enabled) }
-    }
-
-    fun onPersistentChange(enabled: Boolean) {
-        _state.update { it.copy(persistent = enabled) }
-    }
-
     fun saveStreak() {
         val currentState = _state.value
         if (currentState.title.trim().isEmpty()) {
-            _state.update { it.copy(errorMessage = "Title cannot be empty") }
+            _state.update { it.copy(errorMessage = "Please enter a title for your routine") }
             return
         }
 
         viewModelScope.launch {
             try {
                 val todayStr = AppClock.now().toString()
+                val existingStreak = if (currentState.id > 0) {
+                    streakUseCases.getStreakById(currentState.id).first()
+                } else null
+
                 val streak = Streak(
                     id = currentState.id,
                     title = currentState.title.trim(),
@@ -163,28 +125,12 @@ class CreateStreakViewModel @Inject constructor(
                     creationDate = if (currentState.id > 0 && currentState.creationDate.isNotEmpty()) {
                         currentState.creationDate
                     } else todayStr,
-                    repeatIntervalDays = currentState.repeatIntervalDays,
+                    repeatIntervalDays = 1,
                     daysOfWeek = currentState.daysOfWeek,
                     reminderTime = currentState.reminderTime,
-                    reminderRepeatHours = currentState.reminderRepeatHours,
-                    remindUntilDone = currentState.remindUntilDone,
-                    dangerReminderMinutes = currentState.dangerReminderMinutes,
-                    cutoffTime = currentState.cutoffTime,
-                    gracePeriodUntil3AM = currentState.gracePeriodUntil3AM,
-                    notificationSound = currentState.notificationSound,
-                    vibrate = currentState.vibrate,
-                    silent = currentState.silent,
-                    persistent = currentState.persistent,
-                    // If editing, keep these fields or update them
-                    currentStreak = if (currentState.id > 0) {
-                        streakUseCases.getStreakById(currentState.id).first()?.currentStreak ?: 0
-                    } else 0,
-                    longestStreak = if (currentState.id > 0) {
-                        streakUseCases.getStreakById(currentState.id).first()?.longestStreak ?: 0
-                    } else 0,
-                    lastCompletedDate = if (currentState.id > 0) {
-                        streakUseCases.getStreakById(currentState.id).first()?.lastCompletedDate ?: ""
-                    } else ""
+                    currentStreak = existingStreak?.currentStreak ?: 0,
+                    longestStreak = existingStreak?.longestStreak ?: 0,
+                    lastCompletedDate = existingStreak?.lastCompletedDate ?: ""
                 )
 
                 if (currentState.id > 0) {
@@ -194,7 +140,7 @@ class CreateStreakViewModel @Inject constructor(
                 }
                 _state.update { it.copy(isSaved = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(errorMessage = e.localizedMessage ?: "Unknown error") }
+                _state.update { it.copy(errorMessage = e.localizedMessage ?: "Failed to save streak") }
             }
         }
     }

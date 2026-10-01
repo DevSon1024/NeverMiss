@@ -1,7 +1,9 @@
 package com.devson.NeverMiss.domain.model
 
+import androidx.compose.runtime.Immutable
 import com.devson.NeverMiss.data.local.db.StreakEntity
 
+@Immutable
 data class Streak(
     val id: Long = 0L,
     val title: String,

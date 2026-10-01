@@ -187,7 +187,7 @@ fun SettingsScreen(
                 }
 
                 // REMINDERS CUSTOMIZATION
-                SettingsSectionTitle("ALARM ENGINE CUSTOMIZATION")
+                SettingsSectionTitle("REMINDER ENGINE CUSTOMIZATION")
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),

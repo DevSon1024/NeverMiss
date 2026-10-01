@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.repository.StreakRepository
@@ -47,7 +48,7 @@ class ReminderScheduler @Inject constructor(
         }
 
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.devson.NeverMiss.ACTION_ALARM_${streakId}"
+            action = "com.devson.NeverMiss.ACTION_REMINDER_${streakId}"
             putExtra("STREAK_ID", streakId)
         }
 
@@ -64,22 +65,31 @@ class ReminderScheduler @Inject constructor(
             flags
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                    )
+                }
+            } else {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent
                 )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent
-                )
             }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
+        } catch (e: SecurityException) {
+            // Fallback for security restrictions on exact alarms
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,
                 pendingIntent
@@ -87,9 +97,16 @@ class ReminderScheduler @Inject constructor(
         }
     }
 
+    suspend fun scheduleAllActiveReminders() {
+        val activeStreaks = repository.getActiveStreaks()
+        for (streak in activeStreaks) {
+            scheduleNextAlarm(streak.id)
+        }
+    }
+
     fun cancelAlarm(streakId: Long) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.devson.NeverMiss.ACTION_ALARM_${streakId}"
+            action = "com.devson.NeverMiss.ACTION_REMINDER_${streakId}"
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -107,76 +124,28 @@ class ReminderScheduler @Inject constructor(
 
     fun calculateNextReminderDateTime(
         streak: Streak,
-        nowDateTime: LocalDateTime = com.devson.NeverMiss.core.util.AppClock.nowDateTime()
+        nowDateTime: LocalDateTime = AppClock.nowDateTime()
     ): LocalDateTime? {
         val nowDate = nowDateTime.toLocalDate()
         val nowTime = nowDateTime.toLocalTime()
 
-        // 1. Check if today is completed
+        val reminderLocalTime = parseLocalTime(streak.reminderTime)
         val todayStr = StreakCalculator.formatDate(nowDate)
         val isTodayCompleted = streak.lastCompletedDate == todayStr
-
-        if (isTodayCompleted) {
-            // Task is done today. Find next scheduled day.
-            val nextDate = findNextScheduledDate(streak, nowDate.plusDays(1))
-            val reminderLocalTime = parseLocalTime(streak.reminderTime)
-            return nextDate.atTime(reminderLocalTime)
-        }
-
-        // Today is not completed. Check if today is a scheduled day.
         val isTodayScheduled = StreakCalculator.isScheduled(streak, nowDate)
 
-        if (isTodayScheduled) {
-            val reminderLocalTime = parseLocalTime(streak.reminderTime)
-            if (nowTime.isBefore(reminderLocalTime)) {
-                // First reminder for today is in the future
-                return nowDate.atTime(reminderLocalTime)
-            }
-
-            // It is past the first reminder time. Is repeat enabled?
-            if (streak.reminderRepeatHours > 0) {
-                // Calculate next repeating alarm time
-                val repeatHours = streak.reminderRepeatHours.toLong()
-                var nextRepeatTime = reminderLocalTime.plusHours(repeatHours)
-                
-                while (nextRepeatTime.isBefore(nowTime) || nextRepeatTime == nowTime) {
-                    nextRepeatTime = nextRepeatTime.plusHours(repeatHours)
-                }
-
-                // Check if this repeat time falls before the cutoff limit
-                val cutoffLocalTime = parseLocalTime(streak.cutoffTime)
-                val isCutoffNextDay = streak.gracePeriodUntil3AM || 
-                    cutoffLocalTime == LocalTime.MIDNIGHT ||
-                    cutoffLocalTime.isBefore(reminderLocalTime)
-
-                val hasPassedCutoff = if (isCutoffNextDay) {
-                    // Grace period until 3 AM next day
-                    val cutoffDateTime = if (streak.gracePeriodUntil3AM) {
-                        nowDate.plusDays(1).atTime(LocalTime.of(3, 0))
-                    } else {
-                        nowDate.plusDays(1).atTime(cutoffLocalTime)
-                    }
-                    nowDate.atTime(nextRepeatTime).isAfter(cutoffDateTime)
-                } else {
-                    nextRepeatTime.isAfter(cutoffLocalTime)
-                }
-
-                if (!hasPassedCutoff) {
-                    return nowDate.atTime(nextRepeatTime)
-                }
-            }
+        // If scheduled today, not completed yet, and reminder time is in the future
+        if (isTodayScheduled && !isTodayCompleted && nowTime.isBefore(reminderLocalTime)) {
+            return nowDate.atTime(reminderLocalTime)
         }
 
-        // Today is either not scheduled or we ran past the cutoff/reminder times.
-        // Schedule for the next scheduled day.
+        // Otherwise, schedule for the next upcoming scheduled day starting from tomorrow
         val nextDate = findNextScheduledDate(streak, nowDate.plusDays(1))
-        val reminderLocalTime = parseLocalTime(streak.reminderTime)
         return nextDate.atTime(reminderLocalTime)
     }
 
     private fun findNextScheduledDate(streak: Streak, startDate: LocalDate): LocalDate {
         var date = startDate
-        // Upper bound safety check to avoid infinite loops (up to 30 days)
         for (i in 0..30) {
             if (StreakCalculator.isScheduled(streak, date)) {
                 return date

@@ -17,6 +17,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.devson.NeverMiss.core.util.AppClock
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class HomeState(
     val activeStreaks: List<Streak> = emptyList(),
     val pendingToday: List<Streak> = emptyList(),

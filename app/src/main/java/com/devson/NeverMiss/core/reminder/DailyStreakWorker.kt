@@ -12,12 +12,14 @@ import dagger.assisted.AssistedInject
 class DailyStreakWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val checkAndResetMissedStreaksUseCase: CheckAndResetMissedStreaksUseCase
+    private val checkAndResetMissedStreaksUseCase: CheckAndResetMissedStreaksUseCase,
+    private val reminderScheduler: ReminderScheduler
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
         return try {
             checkAndResetMissedStreaksUseCase()
+            reminderScheduler.scheduleAllActiveReminders()
             Result.success()
         } catch (e: Exception) {
             Result.retry()

@@ -457,7 +457,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            items(displayStreaks) { streak ->
+                            items(displayStreaks, key = { it.id }) { streak ->
                                 val isDone = streak.lastCompletedDate == todayStr
                                 StreakGridCard(
                                     streak = streak,
@@ -483,10 +483,10 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             if (state.showArchived) {
-                                item {
+                                item(key = "archived_header") {
                                     Text("Archived Streaks Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                 }
-                                items(state.archivedStreaks) { streak ->
+                                items(state.archivedStreaks, key = { it.id }) { streak ->
                                     val isDone = streak.lastCompletedDate == todayStr
                                     StreakCard(
                                         streak = streak,
@@ -506,10 +506,10 @@ fun HomeScreen(
                             } else {
                                 // Section: Pending Today
                                 if (state.pendingToday.isNotEmpty()) {
-                                    item {
+                                    item(key = "pending_header") {
                                         Text("Pending Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                     }
-                                    items(state.pendingToday) { streak ->
+                                    items(state.pendingToday, key = { it.id }) { streak ->
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,
@@ -525,10 +525,10 @@ fun HomeScreen(
 
                                 // Section: Completed Today
                                 if (state.completedToday.isNotEmpty()) {
-                                    item {
+                                    item(key = "completed_header") {
                                         Text("Completed Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                     }
-                                    items(state.completedToday) { streak ->
+                                    items(state.completedToday, key = { it.id }) { streak ->
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = true,
@@ -544,10 +544,10 @@ fun HomeScreen(
                                     it.lastCompletedDate != todayStr && !state.pendingToday.any { p -> p.id == it.id }
                                 }
                                 if (otherStreaks.isNotEmpty()) {
-                                    item {
+                                    item(key = "other_header") {
                                         Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
                                     }
-                                    items(otherStreaks) { streak ->
+                                    items(otherStreaks, key = { it.id }) { streak ->
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,

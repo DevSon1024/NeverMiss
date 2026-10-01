@@ -7,8 +7,6 @@ import com.devson.NeverMiss.core.widget.StreakWidgetProvider
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.LocalDate
-import java.time.LocalTime
 import javax.inject.Inject
 
 class CheckAndResetMissedStreaksUseCase @Inject constructor(
@@ -32,9 +30,11 @@ class CheckAndResetMissedStreaksUseCase @Inject constructor(
                     longestStreak = stats.longestStreak
                 )
                 repository.updateStreak(updatedStreak)
-                reminderScheduler.scheduleNextAlarm(streak.id)
                 hasChanges = true
             }
+
+            // Always reschedule reminder to ensure it never gets stuck on date change
+            reminderScheduler.scheduleNextAlarm(streak.id)
         }
 
         if (hasChanges) {
