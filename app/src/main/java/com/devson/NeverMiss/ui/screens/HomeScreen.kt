@@ -76,6 +76,7 @@ fun HomeScreen(
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAppStreaks: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
 ) {
@@ -184,6 +185,9 @@ fun HomeScreen(
                 ) {
                     IconButton(onClick = { /* Already here */ }) {
                         Icon(Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onNavigateToAppStreaks) {
+                        Icon(Icons.Default.Apps, contentDescription = "App Streaks")
                     }
                     IconButton(onClick = onNavigateToAnalytics) {
                         Icon(Icons.Default.Analytics, contentDescription = "Analytics")
