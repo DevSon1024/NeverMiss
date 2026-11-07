@@ -19,6 +19,7 @@ import com.devson.NeverMiss.ui.screens.appstreaks.AccountSubStreakScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDashboardScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDetailScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.InstalledAppPickerScreen
+import com.devson.NeverMiss.ui.screens.appstreaks.TrackingDiagnosticsScreen
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -35,6 +36,7 @@ sealed class Screen(val route: String) {
     object AccountDetail : Screen("account_detail/{appId}/{accountId}") {
         fun createRoute(appId: Long, accountId: Long) = "account_detail/$appId/$accountId"
     }
+    object TrackingDiagnostics : Screen("tracking_diagnostics")
 }
 
 @Composable
@@ -150,7 +152,8 @@ fun NeverMissNavGraph(
                         restoreState = true
                     }
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) }
             )
         }
 
@@ -164,7 +167,8 @@ fun NeverMissNavGraph(
             AppStreakDashboardScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAppPicker = { navController.navigate(Screen.AppPicker.route) },
-                onNavigateToAppDetail = { appId -> navController.navigate(Screen.AppStreakDetail.createRoute(appId)) }
+                onNavigateToAppDetail = { appId -> navController.navigate(Screen.AppStreakDetail.createRoute(appId)) },
+                onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) }
             )
         }
 
@@ -205,6 +209,12 @@ fun NeverMissNavGraph(
             AccountSubStreakScreen(
                 appId = appId,
                 accountId = accountId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.TrackingDiagnostics.route) {
+            TrackingDiagnosticsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

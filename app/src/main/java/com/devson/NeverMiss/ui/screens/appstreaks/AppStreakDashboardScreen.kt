@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Card
@@ -61,6 +62,7 @@ fun AppStreakDashboardScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAppPicker: () -> Unit,
     onNavigateToAppDetail: (Long) -> Unit,
+    onNavigateToDiagnostics: () -> Unit = {},
     viewModel: AppStreakDashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -85,6 +87,13 @@ fun AppStreakDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToDiagnostics) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Diagnostics",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = onNavigateToAppPicker) {
                         Icon(
                             imageVector = Icons.Default.Add,
