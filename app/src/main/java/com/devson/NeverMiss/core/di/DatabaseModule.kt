@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.devson.NeverMiss.data.local.db.NeverMissDatabase
 import com.devson.NeverMiss.data.local.db.StreakDao
+import com.devson.NeverMiss.data.local.db.apptracking.AppStreakDao
+import com.devson.NeverMiss.data.local.db.migrations.DatabaseMigrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +26,7 @@ object DatabaseModule {
             context,
             NeverMissDatabase::class.java,
             "nevermiss_database"
-        ).fallbackToDestructiveMigration() // Simple database reset for development. For release, implement migrations.
+        ).addMigrations(DatabaseMigrations.MIGRATION_1_2)
          .build()
     }
 
@@ -32,5 +34,11 @@ object DatabaseModule {
     @Singleton
     fun provideStreakDao(database: NeverMissDatabase): StreakDao {
         return database.streakDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppStreakDao(database: NeverMissDatabase): AppStreakDao {
+        return database.appStreakDao()
     }
 }
