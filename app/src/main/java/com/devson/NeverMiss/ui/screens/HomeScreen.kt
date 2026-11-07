@@ -45,6 +45,9 @@ import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.ui.util.getCategoryIcon
 import com.devson.NeverMiss.viewmodel.HomeViewModel
+import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
+import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
+import com.devson.NeverMiss.viewmodel.appstreaks.AccountConfirmationViewModel
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -73,9 +76,12 @@ fun HomeScreen(
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val confirmationState by confirmationViewModel.uiState.collectAsState()
+    var showConfirmationDialog by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
 
     // Confetti Animation State
@@ -320,6 +326,33 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Pending Account Confirmations Banner
+                if (confirmationState.pendingConfirmations.isNotEmpty()) {
+                    val firstPending = confirmationState.pendingConfirmations.first()
+                    Spacer(modifier = Modifier.height(12.dp))
+                    PendingConfirmationBanner(
+                        count = confirmationState.pendingConfirmations.size,
+                        firstAppName = firstPending.app.appName,
+                        onClick = { showConfirmationDialog = true }
+                    )
+                }
+
+                if (showConfirmationDialog && confirmationState.activeConfirmation != null) {
+                    AccountConfirmationDialog(
+                        confirmationDetails = confirmationState.activeConfirmation,
+                        selectedAccountIds = confirmationState.selectedAccountIds,
+                        isProcessing = confirmationState.isProcessing,
+                        onToggleAccount = confirmationViewModel::toggleAccountSelection,
+                        onConfirm = confirmationViewModel::confirmCurrentSelection,
+                        onDismiss = {
+                            confirmationViewModel.dismissCurrent()
+                            if (confirmationState.pendingConfirmations.size <= 1) {
+                                showConfirmationDialog = false
+                            }
+                        }
                     )
                 }
 

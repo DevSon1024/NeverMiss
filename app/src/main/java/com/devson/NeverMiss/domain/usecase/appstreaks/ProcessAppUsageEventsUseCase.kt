@@ -1,6 +1,7 @@
 package com.devson.NeverMiss.domain.usecase.appstreaks
 
 import com.devson.NeverMiss.core.apptracking.engine.AppUsageTrackingEngine
+import com.devson.NeverMiss.core.apptracking.notification.AccountConfirmationNotifier
 import com.devson.NeverMiss.domain.calculator.AppStreakCalculator
 import com.devson.NeverMiss.domain.model.apptracking.CompletionMethod
 import com.devson.NeverMiss.domain.model.apptracking.PendingConfirmation
@@ -15,7 +16,8 @@ data class ProcessUsageSummary(
 
 class ProcessAppUsageEventsUseCase @Inject constructor(
     private val appUsageTrackingEngine: AppUsageTrackingEngine,
-    private val appStreakRepository: AppStreakRepository
+    private val appStreakRepository: AppStreakRepository,
+    private val accountConfirmationNotifier: AccountConfirmationNotifier
 ) {
     suspend operator fun invoke(endTime: Long = System.currentTimeMillis()): ProcessUsageSummary {
         val report = appUsageTrackingEngine.scanAndDetectUsage(endTime)
@@ -59,14 +61,19 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
                 val alreadyPendingForDate = existingPending.any { it.sessionDate == date }
 
                 if (!alreadyPendingForDate) {
-                    appStreakRepository.addPendingConfirmation(
-                        PendingConfirmation(
-                            trackedAppId = app.id,
-                            sessionTimestamp = detection.firstDetectedTimestamp,
-                            sessionDate = date
-                        )
+                    val pending = PendingConfirmation(
+                        trackedAppId = app.id,
+                        sessionTimestamp = detection.firstDetectedTimestamp,
+                        sessionDate = date
                     )
+                    val insertedId = appStreakRepository.addPendingConfirmation(pending)
                     confirmationsQueued++
+
+                    accountConfirmationNotifier.notifyPendingConfirmation(
+                        confirmation = pending.copy(id = insertedId),
+                        app = app,
+                        accounts = accounts
+                    )
                 }
             }
         }
@@ -78,4 +85,3 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
         )
     }
 }
-
