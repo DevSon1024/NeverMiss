@@ -15,6 +15,7 @@ import com.devson.NeverMiss.ui.screens.AnalyticsScreen
 import com.devson.NeverMiss.ui.screens.CreateStreakScreen
 import com.devson.NeverMiss.ui.screens.HomeScreen
 import com.devson.NeverMiss.ui.screens.SettingsScreen
+import com.devson.NeverMiss.ui.screens.appstreaks.InstalledAppPickerScreen
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -23,6 +24,7 @@ sealed class Screen(val route: String) {
     }
     object Analytics : Screen("analytics")
     object Settings : Screen("settings")
+    object AppPicker : Screen("app_picker")
 }
 
 @Composable
@@ -131,6 +133,12 @@ fun NeverMissNavGraph(
                         restoreState = true
                     }
                 },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.AppPicker.route) {
+            InstalledAppPickerScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
