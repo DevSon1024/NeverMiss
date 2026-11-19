@@ -16,6 +16,7 @@ import com.devson.NeverMiss.ui.screens.AnalyticsScreen
 import com.devson.NeverMiss.ui.screens.CreateStreakScreen
 import com.devson.NeverMiss.ui.screens.HomeScreen
 import com.devson.NeverMiss.ui.screens.SettingsScreen
+import com.devson.NeverMiss.ui.screens.archive.ArchiveScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountSubStreakScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDashboardScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.InstalledAppPickerScreen
@@ -41,6 +42,7 @@ sealed class Screen(val route: String) {
         fun createRoute(appId: Long, accountId: Long) = "account_detail/$appId/$accountId"
     }
     object TrackingDiagnostics : Screen("tracking_diagnostics")
+    object Archive : Screen("archive")
 }
 
 @Composable
@@ -103,6 +105,9 @@ fun NeverMissNavGraph(
                         launchSingleTop = true
                         restoreState = true
                     }
+                },
+                onNavigateToArchive = {
+                    navController.navigate(Screen.Archive.route)
                 }
             )
         }
@@ -263,6 +268,15 @@ fun NeverMissNavGraph(
         composable(route = Screen.TrackingDiagnostics.route) {
             TrackingDiagnosticsScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.Archive.route) {
+            ArchiveScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToStreakDetail = { id, type ->
+                    navController.navigate(Screen.StreakDetail.createRoute(type, id))
+                }
             )
         }
     }

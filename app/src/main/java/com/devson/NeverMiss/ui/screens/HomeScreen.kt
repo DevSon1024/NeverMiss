@@ -1,20 +1,19 @@
 package com.devson.NeverMiss.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,55 +23,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.devson.NeverMiss.core.util.AppClock
+import com.devson.NeverMiss.core.util.TrackedAppIcon
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakType
-import com.devson.NeverMiss.domain.model.StreakCategory
-import com.devson.NeverMiss.domain.model.StreakCalculator
-import com.devson.NeverMiss.ui.theme.*
-import com.devson.NeverMiss.ui.util.getCategoryIcon
-import com.devson.NeverMiss.ui.util.StreakIconHelper
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import com.devson.NeverMiss.viewmodel.HomeViewModel
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
 import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
+import com.devson.NeverMiss.ui.theme.SecondaryTeal
+import com.devson.NeverMiss.ui.theme.WarningAmber
+import com.devson.NeverMiss.ui.util.StreakIconHelper
+import com.devson.NeverMiss.viewmodel.HomeAppStreakItem
+import com.devson.NeverMiss.viewmodel.HomeViewModel
 import com.devson.NeverMiss.viewmodel.appstreaks.AccountConfirmationViewModel
-import kotlinx.coroutines.delay
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import kotlin.random.Random
 
-// Confetti Particle model
-enum class ParticleShape { RECT, CIRCLE, RIBBON }
-
-data class Particle(
-    val x: Float,
-    val y: Float,
-    val vx: Float,
-    val vy: Float,
-    val color: Color,
-    val size: Float,
-    val angle: Float,
-    val rotationSpeed: Float,
-    val alpha: Float = 1f,
-    val shape: ParticleShape = ParticleShape.RECT
-)
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToCreate: () -> Unit,
@@ -81,948 +52,395 @@ fun HomeScreen(
     onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAppStreaks: () -> Unit = {},
+    onNavigateToArchive: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val confirmationState by confirmationViewModel.uiState.collectAsState()
     var showConfirmationDialog by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
 
-    // Confetti Animation State
-    var confettiParticles by remember { mutableStateOf<List<Particle>>(emptyList()) }
-    var triggerConfetti by remember { mutableStateOf(false) }
+    var isFabExpanded by remember { mutableStateOf(false) }
 
-    // Track canvas size so particles spawn at the real center
-    var canvasWidth by remember { mutableStateOf(0f) }
-    var canvasHeight by remember { mutableStateOf(0f) }
+    // Intercept back button to close speed-dial FAB when expanded
+    BackHandler(enabled = isFabExpanded) {
+        isFabExpanded = false
+    }
 
-    // Bottom Sheet State
-    var selectedStreakForMenu by remember { mutableStateOf<Streak?>(null) }
-    var showCreateOptionsSheet by remember { mutableStateOf(false) }
-
-    LaunchedEffect(triggerConfetti) {
-        if (triggerConfetti) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-
-            val spawnX = if (canvasWidth > 0f) canvasWidth / 2f else 540f
-            val spawnY = if (canvasHeight > 0f) canvasHeight * 0.45f else 960f
-
-            val confettiColors = listOf(
-                Color(0xFFFFD700), // Gold
-                Color(0xFF00E5FF), // Cyan
-                Color(0xFF69F0AE), // Green
-                Color(0xFFFF4081), // Pink
-                Color(0xFFE040FB), // Purple
-                Color(0xFFFF6D00), // Orange
-                Color(0xFF40C4FF), // Light blue
-                Color(0xFFFFFF00)  // Yellow
-            )
-            val shapes = ParticleShape.entries.toTypedArray()
-
-            val list = (0 until 120).map {
-                val speed = Random.nextFloat() * 28f + 12f
-                val angleDeg = Random.nextFloat() * 360f
-                val rad = Math.toRadians(angleDeg.toDouble())
-                Particle(
-                    x = spawnX,
-                    y = spawnY,
-                    vx = (Math.cos(rad) * speed).toFloat(),
-                    vy = (Math.sin(rad) * speed - 22f).toFloat(), // bias upward
-                    color = confettiColors.random(),
-                    size = Random.nextFloat() * 14f + 7f,
-                    angle = Random.nextFloat() * 360f,
-                    rotationSpeed = (Random.nextFloat() - 0.5f) * 12f,
-                    shape = shapes.random()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "NeverMiss",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Consistency builds greatness",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToArchive) {
+                            Icon(
+                                imageVector = Icons.Default.Archive,
+                                contentDescription = "Archived Streaks",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            },
+            bottomBar = {
+                BottomAppBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.height(68.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { /* Current Home */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Home",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = onNavigateToAppStreaks) {
+                            Icon(
+                                imageVector = Icons.Default.Apps,
+                                contentDescription = "App Streaks"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToAnalytics) {
+                            Icon(
+                                imageVector = Icons.Default.Analytics,
+                                contentDescription = "Analytics"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
+                            )
+                        }
+                    }
+                }
+            },
+            floatingActionButton = {
+                ExpandableFabMenu(
+                    isExpanded = isFabExpanded,
+                    onToggle = { isFabExpanded = !isFabExpanded },
+                    onNormalClick = {
+                        isFabExpanded = false
+                        onNavigateToCreate()
+                    },
+                    onAppStreakClick = {
+                        isFabExpanded = false
+                        onNavigateToAppStreaks()
+                    }
                 )
             }
-            confettiParticles = list
-            triggerConfetti = false
+        ) { innerPadding ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(top = 10.dp, bottom = 80.dp)
+                ) {
+                    // Search Bar
+                    item(key = "search_bar") {
+                        OutlinedTextField(
+                            value = state.searchQuery,
+                            onValueChange = viewModel::onSearchQueryChanged,
+                            placeholder = { Text("Search habits & apps...") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
+                            },
+                            trailingIcon = {
+                                if (state.searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        )
+                    }
 
-            // Animation loop — ~140 frames (~2.3 s), fade starts at 60% life
-            val totalTicks = 140
-            var ticks = 0
-            while (confettiParticles.isNotEmpty() && ticks < totalTicks) {
-                val progress = ticks.toFloat() / totalTicks
-                val fadeStart = 0.55f
-                confettiParticles = confettiParticles.mapNotNull { p ->
-                    val newAlpha = if (progress < fadeStart) 1f
-                    else (1f - (progress - fadeStart) / (1f - fadeStart)).coerceAtLeast(0f)
-                    if (newAlpha <= 0.01f || (canvasHeight > 0f && p.y > canvasHeight + 100f)) null
-                    else p.copy(
-                        x = p.x + p.vx,
-                        y = p.y + p.vy,
-                        vy = p.vy + 0.65f,   // gravity
-                        vx = p.vx * 0.985f,  // air friction
-                        angle = p.angle + p.rotationSpeed,
-                        alpha = newAlpha
-                    )
+                    // Pending Confirmation Banner
+                    val pendingConfirmations = confirmationState.pendingConfirmations
+                    if (pendingConfirmations.isNotEmpty()) {
+                        item(key = "pending_confirmation_banner") {
+                            PendingConfirmationBanner(
+                                count = pendingConfirmations.size,
+                                firstAppName = pendingConfirmations.first().app.appName,
+                                onClick = { showConfirmationDialog = true }
+                            )
+                        }
+                    }
+
+                    // Section 1: Normal Streaks
+                    item(key = "normal_streaks_heading") {
+                        SectionHeader(
+                            title = "NORMAL STREAKS",
+                            count = state.normalStreaks.size
+                        )
+                    }
+
+                    if (state.normalStreaks.isEmpty()) {
+                        item(key = "normal_streaks_empty") {
+                            EmptySectionCard(
+                                title = "No Habit Streaks Yet",
+                                message = "Track daily habits like reading, meditating, or exercising. Tap + to begin.",
+                                icon = Icons.Default.SelfImprovement
+                            )
+                        }
+                    } else {
+                        items(
+                            items = state.normalStreaks,
+                            key = { "normal_${it.id}" }
+                        ) { streak ->
+                            NormalStreakCard(
+                                streak = streak,
+                                onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) }
+                            )
+                        }
+                    }
+
+                    // Section 2: App Streaks
+                    item(key = "app_streaks_heading") {
+                        SectionHeader(
+                            title = "APP STREAKS",
+                            count = state.appStreaks.size,
+                            modifier = Modifier.padding(top = 10.dp)
+                        )
+                    }
+
+                    if (state.appStreaks.isEmpty()) {
+                        item(key = "app_streaks_empty") {
+                            EmptySectionCard(
+                                title = "No App Streaks Tracked",
+                                message = "Track daily active usage and sub-streaks across your installed applications.",
+                                icon = Icons.Default.Apps
+                            )
+                        }
+                    } else {
+                        items(
+                            items = state.appStreaks,
+                            key = { "app_${it.app.id}" }
+                        ) { appItem ->
+                            AppStreakCard(
+                                appItem = appItem,
+                                onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) }
+                            )
+                        }
+                    }
                 }
-                delay(16)
-                ticks++
             }
-            confettiParticles = emptyList()
+        }
+
+        // Tap-outside scrim for speed-dial FAB
+        if (isFabExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        isFabExpanded = false
+                    }
+            )
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCreateOptionsSheet = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Streak", modifier = Modifier.size(32.dp))
+    // Account Confirmation Dialog
+    if (showConfirmationDialog && confirmationState.activeConfirmation != null) {
+        AccountConfirmationDialog(
+            confirmationDetails = confirmationState.activeConfirmation,
+            selectedAccountIds = confirmationState.selectedAccountIds,
+            isProcessing = confirmationState.isProcessing,
+            onToggleAccount = confirmationViewModel::toggleAccountSelection,
+            onConfirm = {
+                confirmationViewModel.confirmCurrentSelection()
+                showConfirmationDialog = false
+            },
+            onDismiss = {
+                confirmationViewModel.dismissCurrent()
+                showConfirmationDialog = false
             }
-        },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.height(72.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { /* Already here */ }) {
-                        Icon(Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = onNavigateToAppStreaks) {
-                        Icon(Icons.Default.Apps, contentDescription = "App Streaks")
-                    }
-                    IconButton(onClick = onNavigateToAnalytics) {
-                        Icon(Icons.Default.Analytics, contentDescription = "Analytics")
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding)
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.height(22.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
-                // Header
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = if (state.showArchived) "Archived Vault" else "NeverMiss",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = if (state.showArchived) "Manage your archived streaks" else "Consistency builds greatness",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
-                    }
-
-                    // Stat Badge
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.AcUnit, contentDescription = "Freezes", tint = SecondaryTeal, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${state.freezesRemaining} Freezes",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                // Date & Time Showcase (Default / Custom Override)
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val isOverride = AppClock.isOverrideActive()
-                val displayDate = AppClock.now()
-                val formatter = remember(displayDate) {
-                    DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy")
-                }
-                val dateStr = remember(displayDate, formatter) {
-                    displayDate.format(formatter)
-                }
-
-                var currentTimeStr by remember { mutableStateOf("") }
-
-                LaunchedEffect(isOverride) {
-                    while (true) {
-                        val nowTime = LocalTime.now()
-                        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-                        currentTimeStr = nowTime.format(timeFormatter)
-                        delay(1000)
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (isOverride) {
-                                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            }
-                        )
-                        .border(
-                            1.dp,
-                            if (isOverride) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(14.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (isOverride) Icons.Default.EditCalendar else Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = if (isOverride) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = dateStr,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        if (isOverride) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.tertiary)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "CUSTOM",
-                                    color = Color.White,
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
-                    Text(
-                        text = currentTimeStr,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // Pending Account Confirmations Banner
-                if (confirmationState.pendingConfirmations.isNotEmpty()) {
-                    val firstPending = confirmationState.pendingConfirmations.first()
-                    Spacer(modifier = Modifier.height(12.dp))
-                    PendingConfirmationBanner(
-                        count = confirmationState.pendingConfirmations.size,
-                        firstAppName = firstPending.app.appName,
-                        onClick = { showConfirmationDialog = true }
-                    )
-                }
-
-                if (showConfirmationDialog && confirmationState.activeConfirmation != null) {
-                    AccountConfirmationDialog(
-                        confirmationDetails = confirmationState.activeConfirmation,
-                        selectedAccountIds = confirmationState.selectedAccountIds,
-                        isProcessing = confirmationState.isProcessing,
-                        onToggleAccount = confirmationViewModel::toggleAccountSelection,
-                        onConfirm = confirmationViewModel::confirmCurrentSelection,
-                        onDismiss = {
-                            confirmationViewModel.dismissCurrent()
-                            if (confirmationState.pendingConfirmations.size <= 1) {
-                                showConfirmationDialog = false
-                            }
-                        }
-                    )
-                }
-
-                // Search Bar
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = viewModel::onSearchQueryChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                    placeholder = { Text("Search streaks...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
-                            IconButton(onClick = viewModel::onToggleShowArchived) {
-                                Icon(
-                                    imageVector = if (state.showArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                                    contentDescription = "Toggle Archived",
-                                    tint = if (state.showArchived) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(onClick = viewModel::onToggleLayout) {
-                                Icon(
-                                    imageVector = if (state.isGridView) Icons.Default.List else Icons.Default.GridView,
-                                    contentDescription = "Toggle Layout",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(16.dp)
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-
-                // Categories Row
-                Spacer(modifier = Modifier.height(12.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        FilterChip(
-                            selected = state.selectedCategory == null,
-                            onClick = { viewModel.onCategorySelected(null) },
-                            label = { Text("All") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Category,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.White,
-                                selectedLeadingIconColor = Color.White,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                    items(StreakCategory.entries.toTypedArray()) { cat ->
-                        FilterChip(
-                            selected = state.selectedCategory == cat.name,
-                            onClick = { viewModel.onCategorySelected(cat.name) },
-                            label = { Text(cat.displayName.split("/").first()) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = getCategoryIcon(cat),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.White,
-                                selectedLeadingIconColor = Color.White,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                }
-
-                // Streaks Content
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val isListEmpty = if (state.showArchived) state.archivedStreaks.isEmpty() else state.activeStreaks.isEmpty()
-
-                if (isListEmpty) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = if (state.showArchived) Icons.Default.FolderOpen else Icons.Default.Inbox,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = if (state.showArchived) "No archived streaks found." else "No streaks created yet.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                            if (!state.showArchived) {
-                                Text("Tap the + button to build consistency!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
-                            }
-                        }
-                    }
-                } else {
-                    val todayStr = StreakCalculator.formatDate(AppClock.now())
-                    val displayStreaks = if (state.showArchived) state.archivedStreaks else state.activeStreaks
-
-                    if (state.isGridView) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(displayStreaks, key = { it.id }) { streak ->
-                                val isDone = streak.lastCompletedDate == todayStr
-                                StreakGridCard(
-                                    streak = streak,
-                                    isCompletedToday = isDone,
-                                    onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                    onLongClick = { onNavigateToEdit(streak.id) },
-                                    onOptionsClick = { selectedStreakForMenu = streak }
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            if (state.showArchived) {
-                                item(key = "archived_header") {
-                                    Text("Archived Streaks Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
-                                }
-                                items(state.archivedStreaks, key = { it.id }) { streak ->
-                                    val isDone = streak.lastCompletedDate == todayStr
-                                    StreakCard(
-                                        streak = streak,
-                                        isCompletedToday = isDone,
-                                        onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                        onLongClick = { onNavigateToEdit(streak.id) },
-                                        onOptionsClick = { selectedStreakForMenu = streak }
-                                    )
-                                }
-                            } else {
-                                // Section: Pending Today
-                                if (state.pendingToday.isNotEmpty()) {
-                                    item(key = "pending_header") {
-                                        Text("Pending Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
-                                    }
-                                    items(state.pendingToday, key = { it.id }) { streak ->
-                                        StreakCard(
-                                            streak = streak,
-                                            isCompletedToday = false,
-                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                            onLongClick = { onNavigateToEdit(streak.id) },
-                                            onOptionsClick = { selectedStreakForMenu = streak }
-                                        )
-                                    }
-                                }
-
-                                // Section: Completed Today
-                                if (state.completedToday.isNotEmpty()) {
-                                    item(key = "completed_header") {
-                                        Text("Completed Today", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
-                                    }
-                                    items(state.completedToday, key = { it.id }) { streak ->
-                                        StreakCard(
-                                            streak = streak,
-                                            isCompletedToday = true,
-                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                            onLongClick = { onNavigateToEdit(streak.id) },
-                                            onOptionsClick = { selectedStreakForMenu = streak }
-                                        )
-                                    }
-                                }
-
-                                // Section: All Other Active
-                                val otherStreaks = state.activeStreaks.filter {
-                                    it.lastCompletedDate != todayStr && !state.pendingToday.any { p -> p.id == it.id }
-                                }
-                                if (otherStreaks.isNotEmpty()) {
-                                    item(key = "other_header") {
-                                        Text("Scheduled Days Rest", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, modifier = Modifier.padding(vertical = 4.dp))
-                                    }
-                                    items(otherStreaks, key = { it.id }) { streak ->
-                                        StreakCard(
-                                            streak = streak,
-                                            isCompletedToday = false,
-                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                            onLongClick = { onNavigateToEdit(streak.id) },
-                                            onOptionsClick = { selectedStreakForMenu = streak }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Confetti Overlay Canvas
-            Canvas(modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coords ->
-                    canvasWidth = coords.size.width.toFloat()
-                    canvasHeight = coords.size.height.toFloat()
-                }
-            ) {
-                confettiParticles.forEach { p ->
-                    rotate(p.angle, pivot = Offset(p.x, p.y)) {
-                        when (p.shape) {
-                            ParticleShape.RECT -> drawRect(
-                                color = p.color.copy(alpha = p.alpha),
-                                topLeft = Offset(p.x - p.size / 2f, p.y - p.size / 4f),
-                                size = Size(p.size, p.size / 2f)
-                            )
-                            ParticleShape.CIRCLE -> drawCircle(
-                                color = p.color.copy(alpha = p.alpha),
-                                radius = p.size / 2.5f,
-                                center = Offset(p.x, p.y)
-                            )
-                            ParticleShape.RIBBON -> drawRect(
-                                color = p.color.copy(alpha = p.alpha),
-                                topLeft = Offset(p.x - p.size * 0.75f, p.y - p.size / 6f),
-                                size = Size(p.size * 1.5f, p.size / 3f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Streak Options Bottom Sheet
-            if (selectedStreakForMenu != null) {
-                val streak = selectedStreakForMenu!!
-                ModalBottomSheet(
-                    onDismissRequest = { selectedStreakForMenu = null },
-                    sheetState = rememberModalBottomSheetState(),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    dragHandle = { BottomSheetDefaults.DragHandle() },
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(bottom = 24.dp)
-                    ) {
-                        // Header
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(streak.color).copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!streak.icon.isNullOrEmpty()) {
-                                    Icon(
-                                        imageVector = StreakIconHelper.getIcon(streak.icon),
-                                        contentDescription = streak.title,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                } else {
-                                    Text(streak.emoji, fontSize = 24.sp)
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = streak.title,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = streak.category.displayName.split("/").first(),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(vertical = 12.dp)
-                        )
-
-                        // Pause / Resume option
-                        SheetOptionItem(
-                            icon = if (streak.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            title = if (streak.isPaused) "Resume Routine" else "Pause Routine",
-                            description = if (streak.isPaused) "Resume notifications and tracking" else "Temporarily freeze tracking and alarms",
-                            iconColor = MaterialTheme.colorScheme.secondary,
-                            onClick = {
-                                viewModel.togglePauseStreak(streak)
-                                selectedStreakForMenu = null
-                            }
-                        )
-
-                        // View Details option
-                        SheetOptionItem(
-                            icon = Icons.Default.Info,
-                            title = "View Details",
-                            description = "View streak statistics, calendar history, and management actions",
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            onClick = {
-                                onNavigateToStreakDetail(streak.id, StreakType.NORMAL)
-                                selectedStreakForMenu = null
-                            }
-                        )
-
-                        // Archive / Unarchive option
-                        SheetOptionItem(
-                            icon = Icons.Default.Archive,
-                            title = if (streak.isArchived) "Unarchive Streak" else "Archive Streak",
-                            description = if (streak.isArchived) "Bring it back to your active list" else "Move to vault to pause notifications",
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            onClick = {
-                                viewModel.toggleArchiveStreak(streak)
-                                selectedStreakForMenu = null
-                            }
-                        )
-
-                        // Edit option
-                        SheetOptionItem(
-                            icon = Icons.Default.Edit,
-                            title = "Edit Streak",
-                            description = "Modify reminder times, category, colors, and frequency",
-                            iconColor = WarningAmber,
-                            onClick = {
-                                onNavigateToEdit(streak.id)
-                                selectedStreakForMenu = null
-                            }
-                        )
-
-                        // Delete option
-                        SheetOptionItem(
-                            icon = Icons.Default.Delete,
-                            title = "Delete Streak",
-                            description = "Permanently delete this streak and all completed history",
-                            iconColor = AccentCoral,
-                            titleColor = AccentCoral,
-                            onClick = {
-                                viewModel.deleteStreak(streak)
-                                selectedStreakForMenu = null
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        if (showCreateOptionsSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showCreateOptionsSheet = false },
-                sheetState = rememberModalBottomSheetState(),
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "Create New Streak",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Surface(
-                        onClick = {
-                            showCreateOptionsSheet = false
-                            onNavigateToCreate()
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Normal Streak",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Track personal daily habits and manual routines",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        onClick = {
-                            showCreateOptionsSheet = false
-                            onNavigateToAppStreaks()
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(SecondaryTeal.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Apps,
-                                    contentDescription = null,
-                                    tint = SecondaryTeal
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "App Streak",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Automatically track apps and account sub-streaks",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun StreakGridCard(
+private fun NormalStreakCard(
     streak: Streak,
-    isCompletedToday: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onOptionsClick: () -> Unit
+    onClick: () -> Unit
 ) {
-    val streakColor = Color(streak.color)
+    val todayStr = com.devson.NeverMiss.domain.model.StreakCalculator.formatDate(
+        com.devson.NeverMiss.core.util.AppClock.now()
+    )
+    val isDoneToday = streak.lastCompletedDate == todayStr
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = if (isCompletedToday) {
-            BorderStroke(1.5.dp, streakColor)
-        } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        }
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Box {
-            // Subtle color tint strip at top
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(streakColor.copy(alpha = 0.8f), streakColor.copy(alpha = 0.3f))
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 14.dp, bottom = 12.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                modifier = Modifier.size(46.dp)
             ) {
-                // Top row: emoji + menu
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(streakColor.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (!streak.icon.isNullOrEmpty()) {
-                            Icon(
-                                imageVector = StreakIconHelper.getIcon(streak.icon),
-                                contentDescription = streak.title,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        } else {
-                            Text(streak.emoji, fontSize = 20.sp)
-                        }
-                    }
-
-                    IconButton(
-                        onClick = onOptionsClick,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = StreakIconHelper.getIcon(streak.icon),
+                        contentDescription = streak.title,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Title
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = streak.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 18.sp
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Text(
-                    text = streak.category.displayName.split("/").first(),
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
+                if (streak.description.isNotBlank()) {
+                    Text(
+                        text = streak.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Streak count row
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Whatshot,
-                        contentDescription = "Streak",
-                        tint = streakColor,
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = null,
+                        tint = SecondaryTeal,
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "${streak.currentStreak}",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
-                        color = streakColor
+                        text = "${streak.currentStreak} day streak",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SecondaryTeal,
+                        fontWeight = FontWeight.Medium
                     )
-                    if (streak.longestStreak > 0) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "/ ${streak.longestStreak}",
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Status badge
-                val (badgeText, badgeColor) = when {
-                    isCompletedToday -> "DONE" to SuccessGreen
-                    streak.isPaused  -> "PAUSED" to MaterialTheme.colorScheme.onSurfaceVariant
-                    else             -> "DUE" to WarningAmber
+            // Completion status badge
+            when {
+                streak.isPaused -> {
+                    StatusBadge(text = "Paused", color = WarningAmber)
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(badgeColor.copy(alpha = 0.18f))
-                        .padding(horizontal = 6.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = badgeText,
-                        color = badgeColor,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
+                isDoneToday -> {
+                    StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
+                }
+                else -> {
+                    StatusBadge(
+                        text = "Pending",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        icon = Icons.Default.Schedule
                     )
                 }
             }
@@ -1030,168 +448,86 @@ fun StreakGridCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun StreakCard(
-    streak: Streak,
-    isCompletedToday: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onOptionsClick: () -> Unit
+private fun AppStreakCard(
+    appItem: HomeAppStreakItem,
+    onClick: () -> Unit
 ) {
+    val app = appItem.app
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    onLongClick()
-                }
-            ),
-        shape = RoundedCornerShape(20.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = if (isCompletedToday) {
-            BorderStroke(1.5.dp, Color(streak.color))
-        } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        }
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(streak.color).copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (!streak.icon.isNullOrEmpty()) {
-                            Icon(
-                                imageVector = StreakIconHelper.getIcon(streak.icon),
-                                contentDescription = streak.title,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            TrackedAppIcon(
+                packageName = app.packageName,
+                iconSize = 46.dp,
+                clipShape = RoundedCornerShape(14.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = app.appName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = appItem.accountSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Whatshot,
+                        contentDescription = null,
+                        tint = SecondaryTeal,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = if (appItem.accountCount > 1) {
+                            "${appItem.accountCount} sub-streaks"
                         } else {
-                            Text(streak.emoji, fontSize = 24.sp)
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.fillMaxWidth(0.6f)) {
-                        Text(
-                            text = streak.title,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = streak.category.displayName.split("/").first(),
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Streak Number Count
-                    Column(horizontalAlignment = Alignment.End) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Whatshot,
-                                contentDescription = "Streak",
-                                tint = Color(streak.color),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${streak.currentStreak}",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 18.sp,
-                                color = Color(streak.color)
-                            )
-                        }
-                        if (streak.longestStreak > 0) {
-                            Text(
-                                text = "Max ${streak.longestStreak}",
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    IconButton(onClick = onOptionsClick) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                            "${app.currentStreak} day streak"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SecondaryTeal,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Completion Progress Bar or Alert Indicator
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val nextRemStr = if (streak.isPaused) "Paused" else "Remind at ${streak.reminderTime}"
-                Text(
-                    text = nextRemStr,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (isCompletedToday) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(SuccessGreen.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "COMPLETED",
-                            color = SuccessGreen,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else if (streak.isPaused) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "PAUSED",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(WarningAmber.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "DUE TODAY",
-                            color = WarningAmber,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+            when {
+                app.isPaused -> {
+                    StatusBadge(text = "Paused", color = WarningAmber)
+                }
+                appItem.isCompletedToday -> {
+                    StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
+                }
+                else -> {
+                    StatusBadge(text = "Active", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -1199,47 +535,201 @@ fun StreakCard(
 }
 
 @Composable
-fun SheetOptionItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    iconColor: Color = MaterialTheme.colorScheme.primary,
-    titleColor: Color = MaterialTheme.colorScheme.onSurface
+private fun StatusBadge(
+    text: String,
+    color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 24.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        color = color.copy(alpha = 0.14f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(iconColor.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(20.dp)
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = color
             )
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
-                color = titleColor
-            )
-            Text(
-                text = description,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+@Composable
+private fun EmptySectionCard(
+    title: String,
+    message: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpandableFabMenu(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onNormalClick: () -> Unit,
+    onAppStreakClick: () -> Unit
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 45f else 0f,
+        label = "fab_rotation"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+        ) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Action 1: Normal Habit
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.clickable(onClick = onNormalClick)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        shadowElevation = 2.dp
+                    ) {
+                        Text(
+                            text = "Normal Habit",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+
+                    SmallFloatingActionButton(
+                        onClick = onNormalClick,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "New Habit"
+                        )
+                    }
+                }
+
+                // Action 2: App Streak
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.clickable(onClick = onAppStreakClick)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        shadowElevation = 2.dp
+                    ) {
+                        Text(
+                            text = "App Streak",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+
+                    SmallFloatingActionButton(
+                        onClick = onAppStreakClick,
+                        containerColor = SecondaryTeal.copy(alpha = 0.2f),
+                        contentColor = SecondaryTeal,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Apps,
+                            contentDescription = "New App Streak"
+                        )
+                    }
+                }
+            }
+        }
+
+        // Main FAB
+        FloatingActionButton(
+            onClick = onToggle,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = CircleShape,
+            modifier = Modifier.size(56.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = if (isExpanded) "Close" else "Add Streak",
+                modifier = Modifier
+                    .size(28.dp)
+                    .rotate(rotation)
             )
         }
     }

@@ -25,6 +25,7 @@ interface AppStreakRepository {
     suspend fun deleteTrackedAppById(id: Long)
 
     // --- Tracked Accounts ---
+    fun getAllAccountsFlow(): Flow<List<TrackedAccount>>
     fun getAccountsForAppFlow(appId: Long): Flow<List<TrackedAccount>>
     suspend fun getAccountsForApp(appId: Long): List<TrackedAccount>
     suspend fun getEnabledAccountsForApp(appId: Long): List<TrackedAccount>

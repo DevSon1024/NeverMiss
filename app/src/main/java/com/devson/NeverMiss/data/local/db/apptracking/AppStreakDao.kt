@@ -52,6 +52,9 @@ interface AppStreakDao {
 
     // --- Tracked Accounts ---
 
+    @Query("SELECT * FROM tracked_accounts")
+    fun getAllAccountsFlow(): Flow<List<TrackedAccountEntity>>
+
     @Query("SELECT * FROM tracked_accounts WHERE trackedAppId = :appId ORDER BY accountName ASC")
     fun getAccountsForAppFlow(appId: Long): Flow<List<TrackedAccountEntity>>
 

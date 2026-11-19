@@ -81,6 +81,12 @@ class AppStreakRepositoryImpl @Inject constructor(
 
     // --- Tracked Accounts ---
 
+    override fun getAllAccountsFlow(): Flow<List<TrackedAccount>> {
+        return appStreakDao.getAllAccountsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override fun getAccountsForAppFlow(appId: Long): Flow<List<TrackedAccount>> {
         return appStreakDao.getAccountsForAppFlow(appId).map { entities ->
             entities.map { it.toDomain() }
