@@ -279,20 +279,11 @@ private fun TrackedAppCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // App Avatar
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = app.appName.take(1).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontSize = 18.sp
-                    )
-                }
+                com.devson.NeverMiss.core.util.TrackedAppIcon(
+                    packageName = app.packageName,
+                    iconSize = 44.dp,
+                    clipShape = RoundedCornerShape(12.dp)
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 

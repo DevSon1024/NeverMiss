@@ -12,6 +12,8 @@ import com.devson.NeverMiss.domain.model.apptracking.TrackedAccount
 import com.devson.NeverMiss.domain.repository.AppStreakRepository
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import com.devson.NeverMiss.domain.usecase.LogCompletionUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.AddTrackedAccountUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.UpdateTrackedAppMetadataUseCase
 import com.devson.NeverMiss.domain.usecase.common.DeleteStreakWithConfirmationUseCase
 import com.devson.NeverMiss.domain.usecase.common.DeletionConfirmation
 import com.devson.NeverMiss.domain.usecase.common.ToggleStreakArchiveUseCase
@@ -52,7 +54,9 @@ class CommonStreakDetailViewModel @Inject constructor(
     private val logCompletionUseCase: LogCompletionUseCase,
     private val toggleStreakPauseUseCase: ToggleStreakPauseUseCase,
     private val toggleStreakArchiveUseCase: ToggleStreakArchiveUseCase,
-    private val deleteStreakWithConfirmationUseCase: DeleteStreakWithConfirmationUseCase
+    private val deleteStreakWithConfirmationUseCase: DeleteStreakWithConfirmationUseCase,
+    private val addTrackedAccountUseCase: AddTrackedAccountUseCase,
+    private val updateTrackedAppMetadataUseCase: UpdateTrackedAppMetadataUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CommonStreakDetailState())
@@ -160,8 +164,18 @@ class CommonStreakDetailViewModel @Inject constructor(
                 } else {
                     val today = AppClock.now()
                     val todayStr = StreakCalculator.formatDate(today)
-                    val completedDates = completions.map { it.completionDate }.toSet()
-                    val isCompletedToday = app.lastCompletedDate == todayStr
+
+                    val isSingleAccount = accounts.size == 1
+                    val completedDates = if (isSingleAccount) {
+                        completions.map { it.completionDate }.toSet()
+                    } else {
+                        emptySet()
+                    }
+                    val isCompletedToday = if (isSingleAccount) {
+                        app.lastCompletedDate == todayStr
+                    } else {
+                        false
+                    }
 
                     val creationDateStr = StreakCalculator.formatDate(
                         Instant.ofEpochMilli(app.trackingCreatedAt)
@@ -177,15 +191,15 @@ class CommonStreakDetailViewModel @Inject constructor(
                         icon = null,
                         emoji = null,
                         color = null,
-                        currentStreak = app.currentStreak,
-                        longestStreak = app.longestStreak,
-                        lastCompletedDate = app.lastCompletedDate,
+                        currentStreak = if (isSingleAccount) app.currentStreak else 0,
+                        longestStreak = if (isSingleAccount) app.longestStreak else 0,
+                        lastCompletedDate = if (isSingleAccount) (app.lastCompletedDate ?: "") else "",
                         isPaused = app.isPaused,
                         isArchived = app.isArchived,
                         status = app.status,
                         creationDate = creationDateStr,
                         startDate = creationDateStr,
-                        totalCompletedDays = completedDates.size,
+                        totalCompletedDays = if (isSingleAccount) completedDates.size else 0,
                         updatedAt = app.updatedAt
                     )
 
@@ -229,7 +243,7 @@ class CommonStreakDetailViewModel @Inject constructor(
                 toggleStreakPauseUseCase(current.type, current.id)
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(actionError = e.localizedMessage ?: "Failed to update pause state")
+                    it.copy(actionError = e.localizedMessage ?: "Failed to toggle pause")
                 }
             }
         }
@@ -242,7 +256,7 @@ class CommonStreakDetailViewModel @Inject constructor(
                 toggleStreakArchiveUseCase(current.type, current.id)
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(actionError = e.localizedMessage ?: "Failed to update archive state")
+                    it.copy(actionError = e.localizedMessage ?: "Failed to toggle archive")
                 }
             }
         }
@@ -251,13 +265,12 @@ class CommonStreakDetailViewModel @Inject constructor(
     fun requestDelete() {
         val current = _uiState.value.detail ?: return
         viewModelScope.launch {
-            try {
-                val info = deleteStreakWithConfirmationUseCase.getConfirmationInfo(current.type, current.id)
-                _uiState.update { it.copy(deletionConfirmation = info, showDeleteDialog = true) }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(actionError = e.localizedMessage ?: "Failed to prepare deletion")
-                }
+            val confirmation = deleteStreakWithConfirmationUseCase.getConfirmationInfo(current.type, current.id)
+            _uiState.update {
+                it.copy(
+                    deletionConfirmation = confirmation,
+                    showDeleteDialog = true
+                )
             }
         }
     }
@@ -266,17 +279,26 @@ class CommonStreakDetailViewModel @Inject constructor(
         _uiState.update { it.copy(showDeleteDialog = false) }
     }
 
-    fun executeDelete() {
+    fun confirmDelete() {
         val current = _uiState.value.detail ?: return
         viewModelScope.launch {
             try {
                 val success = deleteStreakWithConfirmationUseCase.executeDelete(current.type, current.id)
-                _uiState.update { it.copy(isDeleted = success, showDeleteDialog = false) }
+                if (success) {
+                    _uiState.update { it.copy(isDeleted = true, showDeleteDialog = false) }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            showDeleteDialog = false,
+                            actionError = "Could not delete streak"
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        actionError = e.localizedMessage ?: "Failed to delete streak",
-                        showDeleteDialog = false
+                        showDeleteDialog = false,
+                        actionError = e.localizedMessage ?: "Deletion failed"
                     )
                 }
             }
@@ -285,5 +307,33 @@ class CommonStreakDetailViewModel @Inject constructor(
 
     fun changeMonth(newMonth: YearMonth) {
         _uiState.update { it.copy(currentMonth = newMonth) }
+    }
+
+    fun addAccount(name: String, initialStreak: Int = 0) {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.APP) return
+        viewModelScope.launch {
+            try {
+                addTrackedAccountUseCase(current.id, name, initialStreak)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to add account")
+                }
+            }
+        }
+    }
+
+    fun updateAppName(newName: String) {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.APP) return
+        viewModelScope.launch {
+            try {
+                updateTrackedAppMetadataUseCase.updateAppName(current.id, newName)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to update app name")
+                }
+            }
+        }
     }
 }

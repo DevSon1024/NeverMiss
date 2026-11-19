@@ -19,6 +19,10 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
     private val appStreakRepository: AppStreakRepository,
     private val accountConfirmationNotifier: AccountConfirmationNotifier
 ) {
+    companion object {
+        const val MIN_SINGLE_ACCOUNT_VERIFIED_MILLIS = 15_000L
+    }
+
     suspend operator fun invoke(endTime: Long = System.currentTimeMillis()): ProcessUsageSummary {
         val report = appUsageTrackingEngine.scanAndDetectUsage(endTime)
         if (!report.isPermissionGranted || report.detectedAppUsages.isEmpty()) {
@@ -32,6 +36,20 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
             val app = detection.trackedApp
             val date = detection.sessionDate
 
+            // Paused and archived App Streaks must not receive new automatic completions
+            if (app.isPaused || app.isArchived || !app.isEnabled) {
+                continue
+            }
+
+            val accounts = appStreakRepository.getAccountsForApp(app.id)
+
+            // Single-account 15-second verification rule:
+            // When an App Streak contains exactly one tracked account, require at least 15 seconds
+            // of verified foreground usage before considering the app session eligible.
+            if (accounts.size == 1 && detection.maxSingleSessionDurationMillis < MIN_SINGLE_ACCOUNT_VERIFIED_MILLIS) {
+                continue
+            }
+
             val wasLogged = appStreakRepository.logAppCompletion(
                 appId = app.id,
                 date = date,
@@ -41,7 +59,6 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
 
             if (wasLogged) {
                 newlyCompletedCount++
-                // Recalculate streak metrics
                 val completions = appStreakRepository.getCompletionsForApp(app.id)
                 val stats = AppStreakCalculator.calculateAppStreak(app, completions)
 
@@ -55,8 +72,7 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
                 )
             }
 
-            // Check if app has accounts for sub-streak attribution
-            val accounts = appStreakRepository.getAccountsForApp(app.id)
+            // Queue confirmation flow when accounts are present
             if (accounts.isNotEmpty()) {
                 val existingPending = appStreakRepository.getPendingConfirmationsForApp(app.id)
                 val alreadyPendingForDate = existingPending.any { it.sessionDate == date }

@@ -12,6 +12,7 @@ data class AppForegroundEvent(
 enum class NormalizedEventType {
     FOREGROUND,
     BACKGROUND,
+    SCREEN_OFF,
     OTHER
 }
 

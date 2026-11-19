@@ -30,8 +30,7 @@ class UsageStatsManagerHelper @Inject constructor(
 
             while (usageEvents.hasNextEvent()) {
                 usageEvents.getNextEvent(event)
-                val packageName = event.packageName ?: continue
-                if (packageName.isBlank()) continue
+                val packageName = if (event.packageName.isNullOrBlank()) "android" else event.packageName
 
                 val normalized = UsageEventNormalizer.toNormalizedEvent(
                     packageName = packageName,
@@ -52,4 +51,3 @@ class UsageStatsManagerHelper @Inject constructor(
         }
     }
 }
-

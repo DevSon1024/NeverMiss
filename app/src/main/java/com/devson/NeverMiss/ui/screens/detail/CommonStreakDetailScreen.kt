@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +37,9 @@ fun CommonStreakDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+
+    var showEditAppDialog by remember { mutableStateOf(false) }
+    var showAddAccountDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(type, id) {
         viewModel.load(type, id)
@@ -76,7 +81,13 @@ fun CommonStreakDetailScreen(
                             detail = it,
                             onTogglePause = viewModel::togglePause,
                             onToggleArchive = viewModel::toggleArchive,
-                            onEdit = { onNavigateToEdit(detail.id) },
+                            onEdit = {
+                                if (detail.type == StreakType.NORMAL) {
+                                    onNavigateToEdit(detail.id)
+                                } else {
+                                    showEditAppDialog = true
+                                }
+                            },
                             onDelete = viewModel::requestDelete
                         )
                     }
@@ -152,9 +163,16 @@ fun CommonStreakDetailScreen(
                         )
 
                         // STATISTICS
-                        StreakStatisticsSection(
-                            detail = detail
-                        )
+                        // When an App Streak has MORE THAN ONE account or NO accounts:
+                        // Hide all three top statistics cards completely.
+                        // When exactly ONE account or NORMAL streak: show statistics.
+                        val showStatistics = detail.type == StreakType.NORMAL ||
+                            (detail.type == StreakType.APP && state.accounts.size == 1)
+                        if (showStatistics) {
+                            StreakStatisticsSection(
+                                detail = detail
+                            )
+                        }
 
                         // TYPE-SPECIFIC CONTENT
                         if (detail.type == StreakType.NORMAL) {
@@ -176,7 +194,8 @@ fun CommonStreakDetailScreen(
                                 onMonthChange = viewModel::changeMonth,
                                 onAccountClick = { accountId ->
                                     onNavigateToAccountDetail(detail.id, accountId)
-                                }
+                                },
+                                onAddAccountClick = { showAddAccountDialog = true }
                             )
                         }
 
@@ -201,22 +220,114 @@ fun CommonStreakDetailScreen(
             },
             text = {
                 Text(
-                    text = "Are you sure you want to permanently delete \"$targetName\"? This will remove all associated completion records ($recordCount recorded history items). This action cannot be undone."
+                    text = "Are you sure you want to permanently delete \"$targetName\"? This action will remove $recordCount related record(s) and cannot be undone."
                 )
             },
             confirmButton = {
                 Button(
-                    onClick = viewModel::executeDelete,
+                    onClick = viewModel::confirmDelete,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     )
                 ) {
-                    Text(text = "Delete", color = MaterialTheme.colorScheme.onError)
+                    Text("Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = viewModel::dismissDeleteDialog) {
-                    Text(text = "Cancel")
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Edit App Streak Dialog
+    if (showEditAppDialog && detail?.type == StreakType.APP) {
+        var appNameText by remember { mutableStateOf(detail.name) }
+        AlertDialog(
+            onDismissRequest = { showEditAppDialog = false },
+            title = { Text("Edit App Streak", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Update the display name of this tracked application:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = appNameText,
+                        onValueChange = { appNameText = it },
+                        label = { Text("App Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = appNameText.trim()
+                        if (trimmed.isNotEmpty()) {
+                            viewModel.updateAppName(trimmed)
+                            showEditAppDialog = false
+                        }
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditAppDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Add Tracked Account Dialog
+    if (showAddAccountDialog) {
+        var accountNameText by remember { mutableStateOf("") }
+        var initialStreakText by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddAccountDialog = false },
+            title = { Text("Add Tracked Account", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = accountNameText,
+                        onValueChange = { accountNameText = it },
+                        label = { Text("Account Name (e.g. Personal, Work)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = initialStreakText,
+                        onValueChange = { if (it.all { ch -> ch.isDigit() }) initialStreakText = it },
+                        label = { Text("Initial Streak (optional)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = accountNameText.trim()
+                        if (trimmed.isNotEmpty()) {
+                            val initial = initialStreakText.toIntOrNull() ?: 0
+                            viewModel.addAccount(trimmed, initial)
+                            showAddAccountDialog = false
+                        }
+                    }
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddAccountDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )

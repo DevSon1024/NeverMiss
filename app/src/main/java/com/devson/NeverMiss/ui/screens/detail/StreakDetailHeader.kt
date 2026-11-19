@@ -46,29 +46,28 @@ fun StreakDetailHeader(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Icon Avatar
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (detail.type == StreakType.NORMAL) {
+                if (detail.type == StreakType.NORMAL) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                            .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = StreakIconHelper.getIcon(detail.icon),
                             contentDescription = detail.name,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
                         )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Apps,
-                            contentDescription = detail.name,
-                            tint = SecondaryTeal,
-                            modifier = Modifier.size(32.dp)
-                        )
                     }
+                } else {
+                    com.devson.NeverMiss.core.util.TrackedAppIcon(
+                        packageName = detail.description,
+                        iconSize = 60.dp,
+                        clipShape = RoundedCornerShape(16.dp)
+                    )
                 }
 
                 // Name and Description

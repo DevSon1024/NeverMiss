@@ -232,25 +232,31 @@ private fun DetailContent(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // App Stats Row
-        item {
-            AppStatsHeader(stats = detail.stats)
+        val isSingleAccount = detail.accountsWithStats.size == 1
+
+        // App Stats Row (Only when exactly one account)
+        if (isSingleAccount) {
+            item {
+                AppStatsHeader(stats = detail.stats)
+            }
         }
 
-        // Monthly Calendar
-        item {
-            Text(
-                text = "COMPLETION CALENDAR",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            CompletionCalendarView(
-                completedDates = completedDates,
-                currentMonth = state.selectedYearMonth,
-                onMonthChange = onMonthChange
-            )
+        // Monthly Calendar (Only when exactly one account)
+        if (isSingleAccount) {
+            item {
+                Text(
+                    text = "COMPLETION CALENDAR",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                CompletionCalendarView(
+                    completedDates = completedDates,
+                    currentMonth = state.selectedYearMonth,
+                    onMonthChange = onMonthChange
+                )
+            }
         }
 
         // Accounts Sub-Streaks Section
@@ -409,11 +415,9 @@ private fun AccountSubStreakItem(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+            com.devson.NeverMiss.core.util.AccountIcon(
+                iconSize = 36.dp,
+                clipShape = RoundedCornerShape(10.dp)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -427,7 +431,7 @@ private fun AccountSubStreakItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "🔥 ${stats.currentStreak}d streak • Best: ${stats.longestStreak}d",
+                    text = "${stats.currentStreak}d streak • Best: ${stats.longestStreak}d",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
