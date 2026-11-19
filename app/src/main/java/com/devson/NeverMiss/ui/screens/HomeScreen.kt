@@ -44,6 +44,8 @@ import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.ui.util.getCategoryIcon
+import com.devson.NeverMiss.ui.util.StreakIconHelper
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import com.devson.NeverMiss.viewmodel.HomeViewModel
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
 import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
@@ -95,6 +97,7 @@ fun HomeScreen(
 
     // Bottom Sheet State
     var selectedStreakForMenu by remember { mutableStateOf<Streak?>(null) }
+    var showCreateOptionsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(triggerConfetti) {
         if (triggerConfetti) {
@@ -163,7 +166,7 @@ fun HomeScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToCreate,
+                onClick = { showCreateOptionsSheet = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -664,7 +667,16 @@ fun HomeScreen(
                                     .background(Color(streak.color).copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(streak.emoji, fontSize = 24.sp)
+                                if (!streak.icon.isNullOrEmpty()) {
+                                    Icon(
+                                        imageVector = StreakIconHelper.getIcon(streak.icon),
+                                        contentDescription = streak.title,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Text(streak.emoji, fontSize = 24.sp)
+                                }
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
@@ -742,6 +754,132 @@ fun HomeScreen(
                 }
             }
         }
+
+        if (showCreateOptionsSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showCreateOptionsSheet = false },
+                sheetState = rememberModalBottomSheetState(),
+                containerColor = MaterialTheme.colorScheme.surface,
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Create New Streak",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Surface(
+                        onClick = {
+                            showCreateOptionsSheet = false
+                            onNavigateToCreate()
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Normal Streak",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Track personal daily habits and manual routines",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        onClick = {
+                            showCreateOptionsSheet = false
+                            onNavigateToAppStreaks()
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(SecondaryTeal.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Apps,
+                                    contentDescription = null,
+                                    tint = SecondaryTeal
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "App Streak",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Automatically track apps and account sub-streaks",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -798,7 +936,16 @@ fun StreakGridCard(
                             .background(streakColor.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(streak.emoji, fontSize = 20.sp)
+                        if (!streak.icon.isNullOrEmpty()) {
+                            Icon(
+                                imageVector = StreakIconHelper.getIcon(streak.icon),
+                                contentDescription = streak.title,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Text(streak.emoji, fontSize = 20.sp)
+                        }
                     }
 
                     IconButton(
@@ -930,7 +1077,16 @@ fun StreakCard(
                             .background(Color(streak.color).copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(streak.emoji, fontSize = 24.sp)
+                        if (!streak.icon.isNullOrEmpty()) {
+                            Icon(
+                                imageVector = StreakIconHelper.getIcon(streak.icon),
+                                contentDescription = streak.title,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(streak.emoji, fontSize = 24.sp)
+                        }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.fillMaxWidth(0.6f)) {

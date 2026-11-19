@@ -14,11 +14,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,24 +27,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.devson.NeverMiss.domain.model.StreakCategory
-import com.devson.NeverMiss.ui.theme.*
-import com.devson.NeverMiss.ui.util.getCategoryIcon
+import com.devson.NeverMiss.ui.theme.AccentCoral
+import com.devson.NeverMiss.ui.theme.SecondaryTeal
+import com.devson.NeverMiss.ui.util.StreakIconHelper
 import com.devson.NeverMiss.viewmodel.CreateStreakViewModel
+import com.devson.NeverMiss.viewmodel.MAX_STREAK_DESCRIPTION_LENGTH
+import com.devson.NeverMiss.viewmodel.MAX_STREAK_TITLE_LENGTH
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-private val CommonEmojis = listOf(
-    "🔥", "💪", "💊", "💻", "🦉", "🪴", "🏆", "🔄", "📚", "🍏",
-    "💧", "🧠", "🏃", "🧘", "🍳", "🧹", "🎨", "🎸", "💰", "✨"
-)
 
 private val WeekDays = listOf(
     1 to "Mon", 2 to "Tue", 3 to "Wed", 4 to "Thu", 5 to "Fri", 6 to "Sat", 7 to "Sun"
@@ -59,6 +60,8 @@ fun CreateStreakScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(streakId) {
         if (streakId > 0) {
@@ -99,7 +102,8 @@ fun CreateStreakScreen(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .imePadding(),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
@@ -133,7 +137,7 @@ fun CreateStreakScreen(
                     }
                 }
 
-                // SECTION 1: EMOJI & TITLE CARD
+                // SECTION 1: STREAK NAME & CURRENT ICON PREVIEW
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -148,26 +152,238 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Selected Emoji Avatar
+                            // Active Icon Avatar Preview
                             Box(
                                 modifier = Modifier
                                     .size(56.dp)
                                     .clip(CircleShape)
-                                    .background(Color(state.color).copy(alpha = 0.18f))
-                                    .border(1.5.dp, Color(state.color), CircleShape),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                    .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(state.emoji, fontSize = 28.sp)
+                                Icon(
+                                    imageVector = StreakIconHelper.getIcon(state.icon),
+                                    contentDescription = "Selected Icon",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
                             }
 
-                            // Title Field
+                            // Title Field (Required)
                             OutlinedTextField(
                                 value = state.title,
                                 onValueChange = viewModel::onTitleChange,
                                 modifier = Modifier.weight(1f),
-                                placeholder = { Text("e.g. Morning Workout", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                placeholder = {
+                                    Text(
+                                        "e.g. Daily Reading",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
                                 singleLine = true,
-                                label = { Text("Streak Title *") },
+                                label = { Text("Streak Name *") },
+                                isError = state.titleError != null,
+                                supportingText = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = state.titleError ?: "",
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = 11.sp
+                                        )
+                                        Text(
+                                            text = "${state.title.length}/$MAX_STREAK_TITLE_LENGTH",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Sentences,
+                                    imeAction = ImeAction.Next
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    errorBorderColor = MaterialTheme.colorScheme.error
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                        }
+
+                        // SECTION 2: MATERIAL ICON PICKER
+                        Text(
+                            text = "CHOOSE ICON",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(StreakIconHelper.icons, key = { it.key }) { item ->
+                                val isSelected = state.icon.equals(item.key, ignoreCase = true)
+                                Surface(
+                                    selected = isSelected,
+                                    onClick = { viewModel.onIconChange(item.key) },
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.background
+                                    },
+                                    border = BorderStroke(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outlineVariant
+                                        }
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.label,
+                                            tint = if (isSelected) {
+                                                Color.White
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                            text = item.label,
+                                            color = if (isSelected) {
+                                                Color.White
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 3: DESCRIPTION / GOAL (OPTIONAL)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "DESCRIPTION & PURPOSE (OPTIONAL)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        OutlinedTextField(
+                            value = state.description,
+                            onValueChange = viewModel::onDescriptionChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text(
+                                    "Why is this habit important to you?",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            minLines = 2,
+                            maxLines = 4,
+                            supportingText = {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                                    Text(
+                                        text = "${state.description.length}/$MAX_STREAK_DESCRIPTION_LENGTH",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Sentences,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.background,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                    }
+                }
+
+                // SECTION 4: INITIAL STREAK HISTORY (ONLY ON CREATION)
+                if (streakId <= 0) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "INITIAL STREAK HISTORY (OPTIONAL)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Text(
+                                text = "Already maintaining this habit? Enter your current streak count to carry over your existing progress seamlessly without starting from zero.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = state.initialStreak,
+                                onValueChange = viewModel::onInitialStreakChange,
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Consecutive Days Maintained") },
+                                placeholder = { Text("0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -178,100 +394,25 @@ fun CreateStreakScreen(
                                 ),
                                 shape = RoundedCornerShape(14.dp)
                             )
-                        }
 
-                        // Emoji Picker Row
-                        Text("Select Icon", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(CommonEmojis, key = { it }) { emoji ->
-                                val isSelected = state.emoji == emoji
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent)
-                                        .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape)
-                                        .clickable { viewModel.onEmojiChange(emoji) },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(emoji, fontSize = 20.sp)
-                                }
+                            val initialCount = state.initialStreak.toIntOrNull() ?: 0
+                            val previewText = if (initialCount > 0) {
+                                "Starts with $initialCount days of history ending yesterday. Completing today will advance it to ${initialCount + 1}."
+                            } else {
+                                "Starts fresh at 0 days. Completing today will set your streak to 1."
                             }
-                        }
 
-                        // Color Picker Palette
-                        Text("Accent Color", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(StreakColors, key = { it.toArgb() }) { color ->
-                                val isSelected = state.color == color.toArgb()
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(color)
-                                        .border(
-                                            2.dp,
-                                            if (isSelected) Color.White else Color.Transparent,
-                                            CircleShape
-                                        )
-                                        .clickable { viewModel.onColorChange(color.toArgb()) },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isSelected) {
-                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-                            }
+                            Text(
+                                text = previewText,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (initialCount > 0) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
-                // SECTION 2: CATEGORY SELECTOR
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Category", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(StreakCategory.entries.toTypedArray(), key = { it.name }) { cat ->
-                            val isSelected = state.category == cat
-                            Surface(
-                                selected = isSelected,
-                                onClick = { viewModel.onCategoryChange(cat) },
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                border = BorderStroke(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = getCategoryIcon(cat),
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = cat.displayName.split("/").first(),
-                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // SECTION 3: SCHEDULE & DAILY REMINDER TIMER
+                // SECTION 5: SCHEDULE & DAILY REMINDER TIMER
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -282,16 +423,26 @@ fun CreateStreakScreen(
                         modifier = Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("SCHEDULE & DAILY REMINDER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "SCHEDULE & DAILY REMINDER",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                        // Days Selector (Everyday vs Custom Days)
+                        // Days Selector
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Repeat Days", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    text = "Repeat Schedule",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                                 FilterChip(
                                     selected = state.daysOfWeek.isEmpty(),
                                     onClick = viewModel::setEveryday,
@@ -313,8 +464,18 @@ fun CreateStreakScreen(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
-                                            .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                            .background(
+                                                if (isSelected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.background
+                                                }
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
+                                                CircleShape
+                                            )
                                             .clickable { viewModel.toggleDayOfWeek(dayInt) },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -329,7 +490,10 @@ fun CreateStreakScreen(
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
 
                         // Reminder Time Picker
                         Row(
@@ -338,15 +502,27 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Schedule, contentDescription = null, tint = SecondaryTeal)
+                                Icon(
+                                    Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = SecondaryTeal
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Reminder Timer", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("Sends daily popup notification", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        text = "Reminder Alarm",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Sends daily push notification",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
 
-                            // Formatted Time Button
                             val formattedTime = remember(state.reminderTime) {
                                 try {
                                     val parsed = LocalTime.parse(state.reminderTime)
@@ -373,110 +549,50 @@ fun CreateStreakScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(formattedTime, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(
+                                    text = formattedTime,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
                             }
                         }
                     }
                 }
 
-                // SECTION: ALREADY HAVE A STREAK? (OPTIONAL)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = "STARTING STREAK PROGRESS (OPTIONAL)",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(
-                            text = "Already maintaining this habit? Enter your ongoing streak count to continue seamlessly without starting from zero.",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        OutlinedTextField(
-                            value = state.initialStreak,
-                            onValueChange = viewModel::onInitialStreakChange,
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Already Maintained Streak (Days)") },
-                            placeholder = { Text("0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            leadingIcon = {
-                                Text("🔥", fontSize = 18.sp, modifier = Modifier.padding(start = 12.dp, end = 4.dp))
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                focusedContainerColor = MaterialTheme.colorScheme.background,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-
-                        val currentCount = state.initialStreak.toIntOrNull() ?: 0
-                        val previewText = if (currentCount > 0) {
-                            "✨ Your streak will start at $currentCount days and advance to ${currentCount + 1} upon today's completion."
-                        } else {
-                            "Your streak will start at 0 days and advance to 1 upon today's completion."
-                        }
-
-                        Text(
-                            text = previewText,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (currentCount > 0) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // SECTION 4: DESCRIPTION / GOAL (OPTIONAL)
-                OutlinedTextField(
-                    value = state.description,
-                    onValueChange = viewModel::onDescriptionChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Description / Goal (Optional)") },
-                    placeholder = { Text("Why is this routine important to you?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // SAVE BUTTON
+                // SAVE BUTTON WITH LOADING STATE
                 Button(
-                    onClick = viewModel::saveStreak,
+                    onClick = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                        viewModel.saveStreak()
+                    },
+                    enabled = !state.isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
                         .clip(RoundedCornerShape(16.dp)),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                    ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = if (streakId > 0) "Save Changes" else "Start Routine",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (state.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Text(
+                            text = if (streakId > 0) "Save Changes" else "Create Streak",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))

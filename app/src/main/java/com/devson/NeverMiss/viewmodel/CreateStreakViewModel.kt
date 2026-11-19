@@ -16,11 +16,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+const val MAX_STREAK_TITLE_LENGTH = 50
+const val MAX_STREAK_DESCRIPTION_LENGTH = 250
+
 @Immutable
 data class CreateStreakState(
     val id: Long = 0L,
     val title: String = "",
     val description: String = "",
+    val icon: String = "auto_awesome",
     val emoji: String = "✨",
     val category: StreakCategory = StreakCategory.CUSTOM,
     val color: Int = 0xFF6200EE.toInt(),
@@ -28,7 +32,10 @@ data class CreateStreakState(
     val daysOfWeek: List<Int> = emptyList(), // empty = Everyday, 1=Mon .. 7=Sun
     val reminderTime: String = "10:00", // HH:mm
     val initialStreak: String = "",
+    val isLoading: Boolean = false,
     val isSaved: Boolean = false,
+    val titleError: String? = null,
+    val descriptionError: String? = null,
     val errorMessage: String? = null
 )
 
@@ -46,17 +53,21 @@ class CreateStreakViewModel @Inject constructor(
             val streak = streakUseCases.getStreakById(streakId).first()
             if (streak != null) {
                 _state.update {
-                    CreateStreakState(
+                    it.copy(
                         id = streak.id,
                         title = streak.title,
                         description = streak.description,
+                        icon = streak.icon ?: "auto_awesome",
                         emoji = streak.emoji,
                         category = streak.category,
                         color = streak.color,
                         creationDate = streak.creationDate,
                         daysOfWeek = streak.daysOfWeek,
                         reminderTime = streak.reminderTime,
-                        initialStreak = if (streak.currentStreak > 0) streak.currentStreak.toString() else ""
+                        initialStreak = if (streak.currentStreak > 0) streak.currentStreak.toString() else "",
+                        titleError = null,
+                        descriptionError = null,
+                        errorMessage = null
                     )
                 }
             }
@@ -64,11 +75,36 @@ class CreateStreakViewModel @Inject constructor(
     }
 
     fun onTitleChange(title: String) {
-        _state.update { it.copy(title = title, errorMessage = null) }
+        val trimmed = if (title.length > MAX_STREAK_TITLE_LENGTH) {
+            title.take(MAX_STREAK_TITLE_LENGTH)
+        } else {
+            title
+        }
+        _state.update {
+            it.copy(
+                title = trimmed,
+                titleError = null,
+                errorMessage = null
+            )
+        }
     }
 
     fun onDescriptionChange(desc: String) {
-        _state.update { it.copy(description = desc) }
+        val trimmed = if (desc.length > MAX_STREAK_DESCRIPTION_LENGTH) {
+            desc.take(MAX_STREAK_DESCRIPTION_LENGTH)
+        } else {
+            desc
+        }
+        _state.update {
+            it.copy(
+                description = trimmed,
+                descriptionError = null
+            )
+        }
+    }
+
+    fun onIconChange(iconKey: String) {
+        _state.update { it.copy(icon = iconKey) }
     }
 
     fun onEmojiChange(emoji: String) {
@@ -110,50 +146,80 @@ class CreateStreakViewModel @Inject constructor(
 
     fun saveStreak() {
         val currentState = _state.value
-        if (currentState.title.trim().isEmpty()) {
-            _state.update { it.copy(errorMessage = "Please enter a title for your routine") }
+        if (currentState.isLoading || currentState.isSaved) return
+
+        val cleanTitle = currentState.title.trim()
+        if (cleanTitle.isEmpty()) {
+            _state.update {
+                it.copy(
+                    titleError = "Streak name is required",
+                    errorMessage = "Please enter a title for your routine"
+                )
+            }
             return
         }
+
+        _state.update { it.copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
             try {
                 val todayStr = AppClock.now().toString()
-                val existingStreak = if (currentState.id > 0) {
-                    streakUseCases.getStreakById(currentState.id).first()
-                } else null
-
-                val initialStreakCount = currentState.initialStreak.toIntOrNull() ?: 0
-
-                val streak = Streak(
-                    id = currentState.id,
-                    title = currentState.title.trim(),
-                    description = currentState.description.trim(),
-                    emoji = currentState.emoji,
-                    category = currentState.category,
-                    color = currentState.color,
-                    creationDate = if (currentState.id > 0 && currentState.creationDate.isNotEmpty()) {
-                        currentState.creationDate
-                    } else todayStr,
-                    repeatIntervalDays = 1,
-                    daysOfWeek = currentState.daysOfWeek,
-                    reminderTime = currentState.reminderTime,
-                    currentStreak = existingStreak?.currentStreak ?: initialStreakCount,
-                    longestStreak = existingStreak?.longestStreak ?: initialStreakCount,
-                    lastCompletedDate = existingStreak?.lastCompletedDate ?: ""
-                )
 
                 if (currentState.id > 0) {
-                    val hasCountChanged = initialStreakCount > 0 && initialStreakCount != existingStreak?.currentStreak
+                    val existingStreak = streakUseCases.getStreakById(currentState.id).first()
+                    if (existingStreak == null) {
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Streak not found"
+                            )
+                        }
+                        return@launch
+                    }
+
+                    val updatedStreak = existingStreak.copy(
+                        title = cleanTitle,
+                        description = currentState.description.trim(),
+                        icon = currentState.icon,
+                        daysOfWeek = currentState.daysOfWeek,
+                        reminderTime = currentState.reminderTime,
+                        updatedAt = System.currentTimeMillis()
+                    )
+
                     streakUseCases.updateStreak(
-                        streak = streak,
-                        updatedStreakCount = if (hasCountChanged) initialStreakCount else null
+                        streak = updatedStreak,
+                        updatedStreakCount = null
                     )
                 } else {
+                    val initialStreakCount = currentState.initialStreak.toIntOrNull() ?: 0
+                    val streak = Streak(
+                        title = cleanTitle,
+                        description = currentState.description.trim(),
+                        icon = currentState.icon,
+                        emoji = currentState.emoji,
+                        category = currentState.category,
+                        color = currentState.color,
+                        creationDate = todayStr,
+                        startDate = todayStr,
+                        repeatIntervalDays = 1,
+                        daysOfWeek = currentState.daysOfWeek,
+                        reminderTime = currentState.reminderTime,
+                        currentStreak = 0,
+                        longestStreak = 0,
+                        lastCompletedDate = "",
+                        updatedAt = System.currentTimeMillis()
+                    )
                     streakUseCases.createStreak(streak, initialStreakCount)
                 }
-                _state.update { it.copy(isSaved = true) }
+
+                _state.update { it.copy(isLoading = false, isSaved = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(errorMessage = e.localizedMessage ?: "Failed to save streak") }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.localizedMessage ?: "Failed to save streak"
+                    )
+                }
             }
         }
     }
