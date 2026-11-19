@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -166,8 +168,9 @@ fun AppStreakDetailScreen(
             title = "Add Account Sub-Streak",
             initialName = "",
             confirmButtonLabel = "Add",
+            showStreakInput = true,
             onDismiss = { viewModel.showAddAccountDialog(false) },
-            onConfirm = { name -> viewModel.addAccount(name) }
+            onConfirm = { name, initialStreak -> viewModel.addAccount(name, initialStreak) }
         )
     }
 
@@ -177,8 +180,9 @@ fun AppStreakDetailScreen(
             title = "Rename Account",
             initialName = account.accountName,
             confirmButtonLabel = "Save",
+            showStreakInput = false,
             onDismiss = { viewModel.setEditingAccount(null) },
-            onConfirm = { name -> viewModel.renameAccount(account.id, name) }
+            onConfirm = { name, _ -> viewModel.renameAccount(account.id, name) }
         )
     }
 
@@ -455,16 +459,18 @@ private fun AddOrEditAccountDialog(
     title: String,
     initialName: String,
     confirmButtonLabel: String,
+    showStreakInput: Boolean = false,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String, Int) -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
+    var initialStreakStr by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -473,13 +479,32 @@ private fun AddOrEditAccountDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (showStreakInput) {
+                    OutlinedTextField(
+                        value = initialStreakStr,
+                        onValueChange = { initialStreakStr = it.filter { ch -> ch.isDigit() }.take(5) },
+                        label = { Text("Starting Streak (Days, Optional)") },
+                        placeholder = { Text("0") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            val count = initialStreakStr.toIntOrNull() ?: 0
+                            if (count > 0) {
+                                Text("Starts at $count days; advances to ${count + 1} upon today's usage.")
+                            }
+                        }
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.trim().isNotEmpty()) {
-                        onConfirm(name.trim())
+                        val streak = initialStreakStr.toIntOrNull() ?: 0
+                        onConfirm(name.trim(), streak)
                     }
                 },
                 enabled = name.trim().isNotEmpty()

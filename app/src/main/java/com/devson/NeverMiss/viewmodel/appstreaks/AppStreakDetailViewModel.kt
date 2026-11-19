@@ -99,10 +99,10 @@ class AppStreakDetailViewModel @Inject constructor(
         _uiState.update { it.copy(editingAccount = account) }
     }
 
-    fun addAccount(accountName: String) {
+    fun addAccount(accountName: String, initialStreak: Int = 0) {
         if (currentAppId <= 0) return
         viewModelScope.launch {
-            addTrackedAccountUseCase(currentAppId, accountName)
+            addTrackedAccountUseCase(currentAppId, accountName, initialStreak)
             loadDetails(currentAppId)
             showAddAccountDialog(false)
         }

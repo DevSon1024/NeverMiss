@@ -27,6 +27,7 @@ data class CreateStreakState(
     val creationDate: String = "",
     val daysOfWeek: List<Int> = emptyList(), // empty = Everyday, 1=Mon .. 7=Sun
     val reminderTime: String = "10:00", // HH:mm
+    val initialStreak: String = "",
     val isSaved: Boolean = false,
     val errorMessage: String? = null
 )
@@ -54,7 +55,8 @@ class CreateStreakViewModel @Inject constructor(
                         color = streak.color,
                         creationDate = streak.creationDate,
                         daysOfWeek = streak.daysOfWeek,
-                        reminderTime = streak.reminderTime
+                        reminderTime = streak.reminderTime,
+                        initialStreak = if (streak.currentStreak > 0) streak.currentStreak.toString() else ""
                     )
                 }
             }
@@ -101,6 +103,11 @@ class CreateStreakViewModel @Inject constructor(
         _state.update { it.copy(reminderTime = time) }
     }
 
+    fun onInitialStreakChange(value: String) {
+        val digitsOnly = value.filter { it.isDigit() }.take(5)
+        _state.update { it.copy(initialStreak = digitsOnly) }
+    }
+
     fun saveStreak() {
         val currentState = _state.value
         if (currentState.title.trim().isEmpty()) {
@@ -115,6 +122,8 @@ class CreateStreakViewModel @Inject constructor(
                     streakUseCases.getStreakById(currentState.id).first()
                 } else null
 
+                val initialStreakCount = currentState.initialStreak.toIntOrNull() ?: 0
+
                 val streak = Streak(
                     id = currentState.id,
                     title = currentState.title.trim(),
@@ -128,15 +137,19 @@ class CreateStreakViewModel @Inject constructor(
                     repeatIntervalDays = 1,
                     daysOfWeek = currentState.daysOfWeek,
                     reminderTime = currentState.reminderTime,
-                    currentStreak = existingStreak?.currentStreak ?: 0,
-                    longestStreak = existingStreak?.longestStreak ?: 0,
+                    currentStreak = existingStreak?.currentStreak ?: initialStreakCount,
+                    longestStreak = existingStreak?.longestStreak ?: initialStreakCount,
                     lastCompletedDate = existingStreak?.lastCompletedDate ?: ""
                 )
 
                 if (currentState.id > 0) {
-                    streakUseCases.updateStreak(streak)
+                    val hasCountChanged = initialStreakCount > 0 && initialStreakCount != existingStreak?.currentStreak
+                    streakUseCases.updateStreak(
+                        streak = streak,
+                        updatedStreakCount = if (hasCountChanged) initialStreakCount else null
+                    )
                 } else {
-                    streakUseCases.createStreak(streak)
+                    streakUseCases.createStreak(streak, initialStreakCount)
                 }
                 _state.update { it.copy(isSaved = true) }
             } catch (e: Exception) {
