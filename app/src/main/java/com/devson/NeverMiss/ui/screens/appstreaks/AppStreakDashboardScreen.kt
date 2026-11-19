@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -142,7 +144,7 @@ fun AppStreakDashboardScreen(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
             color = MaterialTheme.colorScheme.background
         ) {
             if (state.isLoading) {
@@ -157,7 +159,8 @@ fun AppStreakDashboardScreen(
                     state = state,
                     onToggleTracking = viewModel::toggleAppTracking,
                     onAppClick = onNavigateToAppDetail,
-                    onNavigateToPicker = onNavigateToAppPicker
+                    onNavigateToPicker = onNavigateToAppPicker,
+                    bottomPadding = innerPadding.calculateBottomPadding()
                 )
             }
         }
@@ -169,13 +172,15 @@ private fun DashboardContent(
     state: AppStreakDashboardUiState,
     onToggleTracking: (Long) -> Unit,
     onAppClick: (Long) -> Unit,
-    onNavigateToPicker: () -> Unit
+    onNavigateToPicker: () -> Unit,
+    bottomPadding: Dp
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = bottomPadding + 80.dp)
     ) {
         item {
             SummaryMetricsRow(
@@ -197,10 +202,6 @@ private fun DashboardContent(
                     onClick = { onAppClick(summary.app.id) }
                 )
             }
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(72.dp))
         }
     }
 }

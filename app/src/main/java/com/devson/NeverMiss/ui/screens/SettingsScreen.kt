@@ -115,14 +115,15 @@ fun SettingsScreen(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = innerPadding.calculateBottomPadding() + 24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 // THEME SECTION

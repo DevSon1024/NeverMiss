@@ -90,7 +90,7 @@ fun AnalyticsScreen(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
             color = MaterialTheme.colorScheme.background
         ) {
             LazyColumn(
@@ -98,7 +98,10 @@ fun AnalyticsScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp)
+                contentPadding = PaddingValues(
+                    top = 12.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 24.dp
+                )
             ) {
                 // Header Banner: Consistency Score
                 item(key = "header_banner") {

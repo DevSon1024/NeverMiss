@@ -139,7 +139,7 @@ fun HomeScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(top = innerPadding.calculateTopPadding()),
                 color = MaterialTheme.colorScheme.background
             ) {
                 LazyColumn(
@@ -147,7 +147,10 @@ fun HomeScreen(
                         .fillMaxSize()
                         .padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(top = 10.dp, bottom = 80.dp)
+                    contentPadding = PaddingValues(
+                        top = 10.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 80.dp
+                    )
                 ) {
                     // Search Bar
                     item(key = "search_bar") {
