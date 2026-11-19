@@ -15,6 +15,15 @@ object AppStreakCalculator {
         completions: List<AppStreakCompletion>,
         nowDate: LocalDate = AppClock.now()
     ): AppStreakStats {
+        if (app.isPaused) {
+            return AppStreakStats(
+                currentStreak = app.currentStreak,
+                longestStreak = app.longestStreak,
+                totalCompletedDays = completions.map { it.completionDate }.distinct().size,
+                isCompletedToday = app.lastCompletedDate == StreakCalculator.formatDate(nowDate)
+            )
+        }
+
         val completedDates = completions
             .map { it.completionDate }
             .distinct()
@@ -31,6 +40,15 @@ object AppStreakCalculator {
         completions: List<AppStreakCompletion>,
         nowDate: LocalDate = AppClock.now()
     ): AppStreakStats {
+        if (account.isPaused) {
+            return AppStreakStats(
+                currentStreak = account.currentStreak,
+                longestStreak = account.longestStreak,
+                totalCompletedDays = completions.map { it.completionDate }.distinct().size,
+                isCompletedToday = account.lastCompletedDate == StreakCalculator.formatDate(nowDate)
+            )
+        }
+
         val completedDates = completions
             .map { it.completionDate }
             .distinct()
@@ -97,4 +115,3 @@ object AppStreakCalculator {
         )
     }
 }
-

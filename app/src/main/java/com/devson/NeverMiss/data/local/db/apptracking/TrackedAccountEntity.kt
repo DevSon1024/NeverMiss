@@ -29,7 +29,10 @@ data class TrackedAccountEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val currentStreak: Int = 0,
     val longestStreak: Int = 0,
-    val lastCompletedDate: String = ""
+    val lastCompletedDate: String = "",
+    val isPaused: Boolean = false,
+    val isArchived: Boolean = false,
+    val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): TrackedAccount = TrackedAccount(
         id = id,
@@ -39,7 +42,10 @@ data class TrackedAccountEntity(
         createdAt = createdAt,
         currentStreak = currentStreak,
         longestStreak = longestStreak,
-        lastCompletedDate = lastCompletedDate
+        lastCompletedDate = lastCompletedDate,
+        isPaused = isPaused,
+        isArchived = isArchived,
+        updatedAt = updatedAt
     )
 
     companion object {
@@ -51,8 +57,10 @@ data class TrackedAccountEntity(
             createdAt = domain.createdAt,
             currentStreak = domain.currentStreak,
             longestStreak = domain.longestStreak,
-            lastCompletedDate = domain.lastCompletedDate
+            lastCompletedDate = domain.lastCompletedDate,
+            isPaused = domain.isPaused,
+            isArchived = domain.isArchived,
+            updatedAt = domain.updatedAt
         )
     }
 }
-

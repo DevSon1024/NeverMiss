@@ -20,7 +20,13 @@ interface AppStreakDao {
     @Query("SELECT * FROM tracked_apps ORDER BY appName ASC")
     suspend fun getAllTrackedApps(): List<TrackedAppEntity>
 
-    @Query("SELECT * FROM tracked_apps WHERE isEnabled = 1")
+    @Query("SELECT * FROM tracked_apps WHERE isArchived = 0 ORDER BY appName ASC")
+    fun getActiveTrackedAppsFlow(): Flow<List<TrackedAppEntity>>
+
+    @Query("SELECT * FROM tracked_apps WHERE isArchived = 1 ORDER BY appName ASC")
+    fun getArchivedTrackedAppsFlow(): Flow<List<TrackedAppEntity>>
+
+    @Query("SELECT * FROM tracked_apps WHERE isEnabled = 1 AND isPaused = 0 AND isArchived = 0")
     suspend fun getEnabledTrackedApps(): List<TrackedAppEntity>
 
     @Query("SELECT * FROM tracked_apps WHERE id = :id LIMIT 1")
@@ -52,7 +58,7 @@ interface AppStreakDao {
     @Query("SELECT * FROM tracked_accounts WHERE trackedAppId = :appId ORDER BY accountName ASC")
     suspend fun getAccountsForApp(appId: Long): List<TrackedAccountEntity>
 
-    @Query("SELECT * FROM tracked_accounts WHERE trackedAppId = :appId AND isEnabled = 1")
+    @Query("SELECT * FROM tracked_accounts WHERE trackedAppId = :appId AND isEnabled = 1 AND isPaused = 0 AND isArchived = 0")
     suspend fun getEnabledAccountsForApp(appId: Long): List<TrackedAccountEntity>
 
     @Query("SELECT * FROM tracked_accounts WHERE id = :id LIMIT 1")
@@ -152,7 +158,7 @@ interface AppStreakDao {
         )
         val app = getTrackedAppById(appId)
         if (app != null) {
-            updateTrackedApp(app.copy(lastCompletedDate = date))
+            updateTrackedApp(app.copy(lastCompletedDate = date, updatedAt = System.currentTimeMillis()))
         }
         return true
     }
@@ -181,9 +187,8 @@ interface AppStreakDao {
         )
         val account = getAccountById(accountId)
         if (account != null) {
-            updateAccount(account.copy(lastCompletedDate = date))
+            updateAccount(account.copy(lastCompletedDate = date, updatedAt = System.currentTimeMillis()))
         }
         return true
     }
 }
-

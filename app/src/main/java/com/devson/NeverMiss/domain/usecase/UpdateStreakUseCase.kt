@@ -34,18 +34,19 @@ class UpdateStreakUseCase @Inject constructor(
             val earliestDate = scheduledDates.last()
             val latestCompletedDate = scheduledDates.first()
 
-            val existingCreationDate = StreakCalculator.parseDate(streak.creationDate)
-            val newCreationDate = if (earliestDate.isBefore(existingCreationDate)) {
+            val existingStartDate = StreakCalculator.parseDate(streak.startDate.ifEmpty { streak.creationDate })
+            val newStartDate = if (earliestDate.isBefore(existingStartDate)) {
                 StreakCalculator.formatDate(earliestDate)
             } else {
-                streak.creationDate
+                streak.startDate.ifEmpty { streak.creationDate }
             }
 
             val updatedStreak = streak.copy(
-                creationDate = newCreationDate,
+                startDate = newStartDate,
                 currentStreak = updatedStreakCount,
                 longestStreak = maxOf(streak.longestStreak, updatedStreakCount),
-                lastCompletedDate = StreakCalculator.formatDate(latestCompletedDate)
+                lastCompletedDate = StreakCalculator.formatDate(latestCompletedDate),
+                updatedAt = System.currentTimeMillis()
             )
 
             repository.updateStreak(updatedStreak)
@@ -59,7 +60,7 @@ class UpdateStreakUseCase @Inject constructor(
                 )
             }
         } else {
-            repository.updateStreak(streak)
+            repository.updateStreak(streak.copy(updatedAt = System.currentTimeMillis()))
         }
         reminderScheduler.scheduleNextAlarm(streak.id)
     }

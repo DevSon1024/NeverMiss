@@ -12,6 +12,8 @@ interface AppStreakRepository {
 
     // --- Tracked Apps ---
     fun getAllTrackedAppsFlow(): Flow<List<TrackedApp>>
+    fun getActiveTrackedAppsFlow(): Flow<List<TrackedApp>>
+    fun getArchivedTrackedAppsFlow(): Flow<List<TrackedApp>>
     suspend fun getAllTrackedApps(): List<TrackedApp>
     suspend fun getEnabledTrackedApps(): List<TrackedApp>
     suspend fun getTrackedAppById(id: Long): TrackedApp?
@@ -65,4 +67,3 @@ interface AppStreakRepository {
     suspend fun updatePendingConfirmation(confirmation: PendingConfirmation)
     suspend fun expireOldConfirmations(nowMillis: Long = System.currentTimeMillis()): Int
 }
-

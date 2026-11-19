@@ -14,6 +14,8 @@ class CheckAndResetMissedAppStreaksUseCase @Inject constructor(
         var updatedCount = 0
 
         for (app in enabledApps) {
+            if (app.isPaused || app.isArchived) continue
+
             val completions = appStreakRepository.getCompletionsForApp(app.id)
             val stats = AppStreakCalculator.calculateAppStreak(app, completions, nowDate)
 
@@ -21,7 +23,8 @@ class CheckAndResetMissedAppStreaksUseCase @Inject constructor(
                 appStreakRepository.updateTrackedApp(
                     app.copy(
                         currentStreak = stats.currentStreak,
-                        longestStreak = stats.longestStreak
+                        longestStreak = stats.longestStreak,
+                        updatedAt = System.currentTimeMillis()
                     )
                 )
                 updatedCount++
@@ -31,4 +34,3 @@ class CheckAndResetMissedAppStreaksUseCase @Inject constructor(
         return updatedCount
     }
 }
-

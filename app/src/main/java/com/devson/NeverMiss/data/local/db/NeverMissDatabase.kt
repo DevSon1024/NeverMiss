@@ -19,8 +19,8 @@ import com.devson.NeverMiss.data.local.db.apptracking.UsageCheckpointEntity
         UsageCheckpointEntity::class,
         PendingConfirmationEntity::class
     ],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class NeverMissDatabase : RoomDatabase() {
     abstract fun streakDao(): StreakDao

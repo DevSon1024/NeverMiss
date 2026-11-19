@@ -39,9 +39,11 @@ class CreateStreakUseCase @Inject constructor(
 
         val earliestDate = scheduledDates.last()
         val latestCompletedDate = scheduledDates.first()
+        val earliestDateStr = StreakCalculator.formatDate(earliestDate)
 
         val preparedStreak = streak.copy(
-            creationDate = StreakCalculator.formatDate(earliestDate),
+            creationDate = earliestDateStr,
+            startDate = earliestDateStr,
             currentStreak = initialStreakCount,
             longestStreak = initialStreakCount,
             lastCompletedDate = StreakCalculator.formatDate(latestCompletedDate)

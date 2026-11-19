@@ -48,7 +48,8 @@ class ConfirmAccountSessionUseCase @Inject constructor(
                     account.copy(
                         currentStreak = stats.currentStreak,
                         longestStreak = stats.longestStreak,
-                        lastCompletedDate = confirmation.sessionDate
+                        lastCompletedDate = confirmation.sessionDate,
+                        updatedAt = System.currentTimeMillis()
                     )
                 )
             }
@@ -60,4 +61,3 @@ class ConfirmAccountSessionUseCase @Inject constructor(
         return true
     }
 }
-

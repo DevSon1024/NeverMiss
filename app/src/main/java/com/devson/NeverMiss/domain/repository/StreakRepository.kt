@@ -10,6 +10,8 @@ interface StreakRepository {
     fun getActiveStreaksFlow(): Flow<List<Streak>>
     
     suspend fun getActiveStreaks(): List<Streak>
+
+    fun getAllArchivedStreaksFlow(): Flow<List<Streak>>
     
     fun getAllStreaksFlow(): Flow<List<Streak>>
     

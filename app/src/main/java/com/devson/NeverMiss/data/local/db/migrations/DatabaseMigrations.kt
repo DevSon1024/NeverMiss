@@ -110,5 +110,39 @@ object DatabaseMigrations {
             )
         }
     }
-}
 
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // 1. Update streaks table with new columns
+            db.execSQL("ALTER TABLE `streaks` ADD COLUMN `icon` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `streaks` ADD COLUMN `startDate` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `streaks` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `streaks` SET `startDate` = `creationDate` WHERE `startDate` = ''")
+            db.execSQL("UPDATE `streaks` SET `updatedAt` = `nextReminderTimeMillis` WHERE `updatedAt` = 0")
+
+            // 2. Ensure unique constraint on completion_history (streakId, date)
+            db.execSQL(
+                """
+                DELETE FROM `completion_history` WHERE `id` NOT IN (
+                    SELECT MAX(`id`) FROM `completion_history` GROUP BY `streakId`, `date`
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_completion_history_streakId_date` ON `completion_history` (`streakId`, `date`)"
+            )
+
+            // 3. Update tracked_apps table with pausing, archiving, and updatedAt
+            db.execSQL("ALTER TABLE `tracked_apps` ADD COLUMN `isPaused` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tracked_apps` ADD COLUMN `isArchived` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tracked_apps` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `tracked_apps` SET `updatedAt` = `trackingCreatedAt` WHERE `updatedAt` = 0")
+
+            // 4. Update tracked_accounts table with pausing, archiving, and updatedAt
+            db.execSQL("ALTER TABLE `tracked_accounts` ADD COLUMN `isPaused` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tracked_accounts` ADD COLUMN `isArchived` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tracked_accounts` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `tracked_accounts` SET `updatedAt` = `createdAt` WHERE `updatedAt` = 0")
+        }
+    }
+}

@@ -83,7 +83,8 @@ class LogCompletionUseCase @Inject constructor(
         val updatedStreak = streak.copy(
             currentStreak = stats.currentStreak,
             longestStreak = stats.longestStreak,
-            lastCompletedDate = newLastCompletedDate
+            lastCompletedDate = newLastCompletedDate,
+            updatedAt = System.currentTimeMillis()
         )
         repository.updateStreak(updatedStreak)
 

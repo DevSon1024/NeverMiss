@@ -19,6 +19,9 @@ interface StreakDao {
     @Query("SELECT * FROM streaks WHERE isArchived = 0 ORDER BY nextReminderTimeMillis ASC")
     suspend fun getAllActiveStreaks(): List<StreakEntity>
 
+    @Query("SELECT * FROM streaks WHERE isArchived = 1 ORDER BY creationDate DESC")
+    fun getAllArchivedStreaksFlow(): Flow<List<StreakEntity>>
+
     @Query("SELECT * FROM streaks ORDER BY creationDate DESC")
     fun getAllStreaksFlow(): Flow<List<StreakEntity>>
 

@@ -8,7 +8,7 @@ class UpdateTrackedAccountUseCase @Inject constructor(
     private val appStreakRepository: AppStreakRepository
 ) {
     suspend operator fun invoke(account: TrackedAccount) {
-        appStreakRepository.updateAccount(account)
+        appStreakRepository.updateAccount(account.copy(updatedAt = System.currentTimeMillis()))
     }
 
     suspend fun renameAccount(accountId: Long, newName: String): Boolean {
@@ -16,14 +16,45 @@ class UpdateTrackedAccountUseCase @Inject constructor(
         if (trimmed.isEmpty()) return false
 
         val existing = appStreakRepository.getAccountById(accountId) ?: return false
-        appStreakRepository.updateAccount(existing.copy(accountName = trimmed))
+        appStreakRepository.updateAccount(
+            existing.copy(
+                accountName = trimmed,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
         return true
     }
 
     suspend fun toggleAccountEnabled(accountId: Long): Boolean {
         val existing = appStreakRepository.getAccountById(accountId) ?: return false
-        appStreakRepository.updateAccount(existing.copy(isEnabled = !existing.isEnabled))
+        appStreakRepository.updateAccount(
+            existing.copy(
+                isEnabled = !existing.isEnabled,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        return true
+    }
+
+    suspend fun toggleAccountPause(accountId: Long): Boolean {
+        val existing = appStreakRepository.getAccountById(accountId) ?: return false
+        appStreakRepository.updateAccount(
+            existing.copy(
+                isPaused = !existing.isPaused,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        return true
+    }
+
+    suspend fun toggleAccountArchive(accountId: Long): Boolean {
+        val existing = appStreakRepository.getAccountById(accountId) ?: return false
+        appStreakRepository.updateAccount(
+            existing.copy(
+                isArchived = !existing.isArchived,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
         return true
     }
 }
-

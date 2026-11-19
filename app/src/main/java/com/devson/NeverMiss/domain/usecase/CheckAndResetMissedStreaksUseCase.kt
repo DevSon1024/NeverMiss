@@ -21,13 +21,16 @@ class CheckAndResetMissedStreaksUseCase @Inject constructor(
 
         var hasChanges = false
         for (streak in activeStreaks) {
+            if (streak.isPaused || streak.isArchived) continue
+
             val history = repository.getHistoryForStreak(streak.id)
             val stats = StreakCalculator.calculateStreaks(streak, history, nowDate, nowTime)
             
             if (stats.currentStreak != streak.currentStreak) {
                 val updatedStreak = streak.copy(
                     currentStreak = stats.currentStreak,
-                    longestStreak = stats.longestStreak
+                    longestStreak = stats.longestStreak,
+                    updatedAt = System.currentTimeMillis()
                 )
                 repository.updateStreak(updatedStreak)
                 hasChanges = true

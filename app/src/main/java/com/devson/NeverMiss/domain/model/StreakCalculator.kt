@@ -22,15 +22,14 @@ object StreakCalculator {
     }
 
     fun isScheduled(streak: Streak, date: LocalDate): Boolean {
-        val creation = parseDate(streak.creationDate)
-        if (date.isBefore(creation)) return false
+        val start = parseDate(if (streak.startDate.isNotEmpty()) streak.startDate else streak.creationDate)
+        if (date.isBefore(start)) return false
 
         return if (streak.daysOfWeek.isNotEmpty()) {
-            // LocalDate dayOfWeek: Monday=1, Sunday=7
             val dayVal = date.dayOfWeek.value
             streak.daysOfWeek.contains(dayVal)
         } else {
-            val daysBetween = ChronoUnit.DAYS.between(creation, date)
+            val daysBetween = ChronoUnit.DAYS.between(start, date)
             daysBetween % streak.repeatIntervalDays == 0L
         }
     }
@@ -39,7 +38,12 @@ object StreakCalculator {
      * Checks if the cutoff has passed for a given date.
      * Cutoff time is HH:mm. If gracePeriodUntil3AM is true, the cutoff is 03:00 AM of the NEXT day.
      */
-    fun hasCutoffPassed(streak: Streak, date: LocalDate, nowTime: LocalTime = com.devson.NeverMiss.core.util.AppClock.nowTime(), nowDate: LocalDate = com.devson.NeverMiss.core.util.AppClock.now()): Boolean {
+    fun hasCutoffPassed(
+        streak: Streak,
+        date: LocalDate,
+        nowTime: LocalTime = com.devson.NeverMiss.core.util.AppClock.nowTime(),
+        nowDate: LocalDate = com.devson.NeverMiss.core.util.AppClock.now()
+    ): Boolean {
         val cutoffLocalTime = try {
             LocalTime.parse(streak.cutoffTime)
         } catch (e: Exception) {
@@ -47,13 +51,10 @@ object StreakCalculator {
         }
 
         return if (streak.gracePeriodUntil3AM) {
-            // Cutoff is 3 AM of the next day.
-            // If checking for today, cutoff is tomorrow at 3 AM.
             val cutoffDateTime = date.plusDays(1).atTime(LocalTime.of(3, 0))
             val currentDateTime = nowDate.atTime(nowTime)
             currentDateTime.isAfter(cutoffDateTime)
         } else {
-            // If cutoff is 12 AM (midnight/00:00), the deadline is midnight of the next day.
             val cutoffDateTime = if (cutoffLocalTime == LocalTime.MIDNIGHT) {
                 date.plusDays(1).atTime(LocalTime.MIDNIGHT)
             } else {
@@ -70,10 +71,14 @@ object StreakCalculator {
         nowDate: LocalDate = com.devson.NeverMiss.core.util.AppClock.now(),
         nowTime: LocalTime = com.devson.NeverMiss.core.util.AppClock.nowTime()
     ): StreakStats {
+        if (streak.isPaused) {
+            return StreakStats(streak.currentStreak, streak.longestStreak)
+        }
+
         val historyMap = history.associateBy { it.date }
-        val creationLocalDate = parseDate(streak.creationDate)
+        val startLocalDate = parseDate(if (streak.startDate.isNotEmpty()) streak.startDate else streak.creationDate)
         
-        if (nowDate.isBefore(creationLocalDate)) {
+        if (nowDate.isBefore(startLocalDate)) {
             return StreakStats(0, 0)
         }
 
@@ -82,7 +87,7 @@ object StreakCalculator {
         var checkDate = nowDate
         var isStreakBroken = false
 
-        while (!checkDate.isBefore(creationLocalDate)) {
+        while (!checkDate.isBefore(startLocalDate)) {
             val isDayScheduled = isScheduled(streak, checkDate)
             if (isDayScheduled) {
                 val status = historyMap[formatDate(checkDate)]?.status
@@ -90,7 +95,7 @@ object StreakCalculator {
                     CompletionStatus.COMPLETED -> {
                         current++
                     }
-                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN -> {
+                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN, CompletionStatus.PAUSED -> {
                         // Keeps streak alive but doesn't increment the counter
                     }
                     null -> {
@@ -117,10 +122,10 @@ object StreakCalculator {
         // 2. Calculate Longest Streak (Chronological traversal)
         var maxStreak = 0
         var runningStreak = 0
-        val totalDays = ChronoUnit.DAYS.between(creationLocalDate, nowDate)
+        val totalDays = ChronoUnit.DAYS.between(startLocalDate, nowDate)
         
         for (i in 0..totalDays) {
-            val date = creationLocalDate.plusDays(i)
+            val date = startLocalDate.plusDays(i)
             if (isScheduled(streak, date)) {
                 val status = historyMap[formatDate(date)]?.status
                 when (status) {
@@ -130,7 +135,7 @@ object StreakCalculator {
                             maxStreak = runningStreak
                         }
                     }
-                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN -> {
+                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN, CompletionStatus.PAUSED -> {
                         // Keeps running streak alive but doesn't increment
                     }
                     null -> {

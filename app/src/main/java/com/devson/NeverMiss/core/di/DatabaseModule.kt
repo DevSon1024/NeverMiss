@@ -26,8 +26,10 @@ object DatabaseModule {
             context,
             NeverMissDatabase::class.java,
             "nevermiss_database"
-        ).addMigrations(DatabaseMigrations.MIGRATION_1_2)
-         .build()
+        ).addMigrations(
+            DatabaseMigrations.MIGRATION_1_2,
+            DatabaseMigrations.MIGRATION_2_3
+        ).build()
     }
 
     @Provides

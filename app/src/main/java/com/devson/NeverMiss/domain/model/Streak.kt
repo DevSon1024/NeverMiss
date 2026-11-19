@@ -1,19 +1,22 @@
 package com.devson.NeverMiss.domain.model
 
 import androidx.compose.runtime.Immutable
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.data.local.db.StreakEntity
 
 @Immutable
 data class Streak(
-    val id: Long = 0L,
+    override val id: Long = 0L,
     val title: String,
-    val description: String,
-    val emoji: String,
+    override val description: String = "",
+    val icon: String? = null,
+    val emoji: String = "✨",
     val category: StreakCategory,
     val color: Int,
     val creationDate: String, // yyyy-MM-dd
-    val isArchived: Boolean = false,
-    val isPaused: Boolean = false,
+    val startDate: String = creationDate, // yyyy-MM-dd
+    override val isArchived: Boolean = false,
+    override val isPaused: Boolean = false,
     
     // Repeat logic
     val repeatIntervalDays: Int = 1,
@@ -28,9 +31,9 @@ data class Streak(
     val gracePeriodUntil3AM: Boolean = false,
     
     // Stats
-    val currentStreak: Int = 0,
-    val longestStreak: Int = 0,
-    val lastCompletedDate: String = "", // yyyy-MM-dd
+    override val currentStreak: Int = 0,
+    override val longestStreak: Int = 0,
+    override val lastCompletedDate: String = "", // yyyy-MM-dd
     
     // Notifications & Alarm settings
     val notificationSound: String? = null,
@@ -38,17 +41,31 @@ data class Streak(
     val silent: Boolean = false,
     val persistent: Boolean = false,
     
-    val nextReminderTimeMillis: Long = 0L
-) {
+    val nextReminderTimeMillis: Long = 0L,
+    override val updatedAt: Long = System.currentTimeMillis()
+) : StreakMetadata {
+
+    override val type: StreakType get() = StreakType.NORMAL
+    override val name: String get() = title
+    override val status: StreakStatus
+        get() = when {
+            isArchived -> StreakStatus.ARCHIVED
+            isPaused -> StreakStatus.PAUSED
+            lastCompletedDate == StreakCalculator.formatDate(AppClock.now()) -> StreakStatus.COMPLETED_TODAY
+            else -> StreakStatus.ACTIVE
+        }
+
     fun toEntity(): StreakEntity {
         return StreakEntity(
             id = id,
             title = title,
             description = description,
+            icon = icon,
             emoji = emoji,
             category = category.name,
             color = color,
             creationDate = creationDate,
+            startDate = startDate,
             isArchived = isArchived,
             isPaused = isPaused,
             repeatIntervalDays = repeatIntervalDays,
@@ -66,7 +83,8 @@ data class Streak(
             vibrate = vibrate,
             silent = silent,
             persistent = persistent,
-            nextReminderTimeMillis = nextReminderTimeMillis
+            nextReminderTimeMillis = nextReminderTimeMillis,
+            updatedAt = updatedAt
         )
     }
 
@@ -80,10 +98,12 @@ data class Streak(
                 id = entity.id,
                 title = entity.title,
                 description = entity.description,
+                icon = entity.icon,
                 emoji = entity.emoji,
                 category = StreakCategory.fromName(entity.category),
                 color = entity.color,
                 creationDate = entity.creationDate,
+                startDate = if (entity.startDate.isNotEmpty()) entity.startDate else entity.creationDate,
                 isArchived = entity.isArchived,
                 isPaused = entity.isPaused,
                 repeatIntervalDays = entity.repeatIntervalDays,
@@ -101,7 +121,8 @@ data class Streak(
                 vibrate = entity.vibrate,
                 silent = entity.silent,
                 persistent = entity.persistent,
-                nextReminderTimeMillis = entity.nextReminderTimeMillis
+                nextReminderTimeMillis = entity.nextReminderTimeMillis,
+                updatedAt = entity.updatedAt
             )
         }
     }

@@ -24,6 +24,12 @@ class StreakRepositoryImpl @Inject constructor(
         return streakDao.getAllActiveStreaks().map { Streak.fromEntity(it) }
     }
 
+    override fun getAllArchivedStreaksFlow(): Flow<List<Streak>> {
+        return streakDao.getAllArchivedStreaksFlow().map { entities ->
+            entities.map { Streak.fromEntity(it) }
+        }
+    }
+
     override fun getAllStreaksFlow(): Flow<List<Streak>> {
         return streakDao.getAllStreaksFlow().map { entities ->
             entities.map { Streak.fromEntity(it) }

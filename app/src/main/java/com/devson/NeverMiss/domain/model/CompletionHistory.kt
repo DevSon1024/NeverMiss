@@ -40,5 +40,5 @@ data class CompletionHistory(
 }
 
 enum class CompletionStatus {
-    COMPLETED, SKIPPED, FROZEN
+    COMPLETED, SKIPPED, FROZEN, PAUSED
 }

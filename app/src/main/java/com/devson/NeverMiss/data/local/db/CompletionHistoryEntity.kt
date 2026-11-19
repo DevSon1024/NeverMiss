@@ -15,12 +15,16 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["streakId"]), Index(value = ["date"])]
+    indices = [
+        Index(value = ["streakId"]),
+        Index(value = ["date"]),
+        Index(value = ["streakId", "date"], unique = true)
+    ]
 )
 data class CompletionHistoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val streakId: Long,
     val date: String, // yyyy-MM-dd
-    val status: String, // COMPLETED, SKIPPED, FROZEN
+    val status: String, // COMPLETED, SKIPPED, FROZEN, PAUSED
     val timestamp: Long // epoch millis of logging
 )

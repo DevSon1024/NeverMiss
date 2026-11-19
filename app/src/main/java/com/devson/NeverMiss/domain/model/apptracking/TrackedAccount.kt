@@ -11,6 +11,8 @@ data class TrackedAccount(
     val createdAt: Long = System.currentTimeMillis(),
     val currentStreak: Int = 0,
     val longestStreak: Int = 0,
-    val lastCompletedDate: String = ""
+    val lastCompletedDate: String = "",
+    val isPaused: Boolean = false,
+    val isArchived: Boolean = false,
+    val updatedAt: Long = System.currentTimeMillis()
 )
-

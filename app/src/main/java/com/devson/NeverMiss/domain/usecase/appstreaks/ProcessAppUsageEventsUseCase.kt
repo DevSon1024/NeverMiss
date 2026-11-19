@@ -49,7 +49,8 @@ class ProcessAppUsageEventsUseCase @Inject constructor(
                     app.copy(
                         currentStreak = stats.currentStreak,
                         longestStreak = stats.longestStreak,
-                        lastCompletedDate = date
+                        lastCompletedDate = date,
+                        updatedAt = System.currentTimeMillis()
                     )
                 )
             }

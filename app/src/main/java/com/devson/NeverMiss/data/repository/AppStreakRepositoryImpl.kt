@@ -31,6 +31,18 @@ class AppStreakRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getActiveTrackedAppsFlow(): Flow<List<TrackedApp>> {
+        return appStreakDao.getActiveTrackedAppsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getArchivedTrackedAppsFlow(): Flow<List<TrackedApp>> {
+        return appStreakDao.getArchivedTrackedAppsFlow().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun getAllTrackedApps(): List<TrackedApp> {
         return appStreakDao.getAllTrackedApps().map { it.toDomain() }
     }
@@ -208,4 +220,3 @@ class AppStreakRepositoryImpl @Inject constructor(
         return appStreakDao.expireOldConfirmations(nowMillis)
     }
 }
-
