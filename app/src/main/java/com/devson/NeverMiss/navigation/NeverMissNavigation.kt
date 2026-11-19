@@ -11,20 +11,24 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.devson.NeverMiss.domain.model.StreakType
 import com.devson.NeverMiss.ui.screens.AnalyticsScreen
 import com.devson.NeverMiss.ui.screens.CreateStreakScreen
 import com.devson.NeverMiss.ui.screens.HomeScreen
 import com.devson.NeverMiss.ui.screens.SettingsScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountSubStreakScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDashboardScreen
-import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDetailScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.InstalledAppPickerScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.TrackingDiagnosticsScreen
+import com.devson.NeverMiss.ui.screens.detail.CommonStreakDetailScreen
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object CreateStreak : Screen("create?streakId={streakId}") {
         fun createRoute(streakId: Long = -1L) = "create?streakId=$streakId"
+    }
+    object StreakDetail : Screen("streak_detail/{type}/{id}") {
+        fun createRoute(type: StreakType, id: Long) = "streak_detail/${type.name}/$id"
     }
     object Analytics : Screen("analytics")
     object Settings : Screen("settings")
@@ -76,6 +80,9 @@ fun NeverMissNavGraph(
             HomeScreen(
                 onNavigateToCreate = { navController.navigate(Screen.CreateStreak.createRoute()) },
                 onNavigateToEdit = { streakId -> navController.navigate(Screen.CreateStreak.createRoute(streakId)) },
+                onNavigateToStreakDetail = { id, type ->
+                    navController.navigate(Screen.StreakDetail.createRoute(type, id))
+                },
                 onNavigateToAnalytics = {
                     navController.navigate(Screen.Analytics.route) {
                         popUpTo(Screen.Home.route) { saveState = true }
@@ -113,6 +120,40 @@ fun NeverMissNavGraph(
             CreateStreakScreen(
                 streakId = streakId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.StreakDetail.route,
+            arguments = listOf(
+                navArgument("type") {
+                    type = NavType.StringType
+                    defaultValue = StreakType.NORMAL.name
+                },
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            )
+        ) { backStackEntry ->
+            val typeStr = backStackEntry.arguments?.getString("type") ?: StreakType.NORMAL.name
+            val type = try {
+                StreakType.valueOf(typeStr)
+            } catch (e: Exception) {
+                StreakType.NORMAL
+            }
+            val id = backStackEntry.arguments?.getLong("id") ?: -1L
+
+            CommonStreakDetailScreen(
+                type = type,
+                id = id,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { editId ->
+                    navController.navigate(Screen.CreateStreak.createRoute(editId))
+                },
+                onNavigateToAccountDetail = { appId, accountId ->
+                    navController.navigate(Screen.AccountDetail.createRoute(appId, accountId))
+                }
             )
         }
         
@@ -167,7 +208,9 @@ fun NeverMissNavGraph(
             AppStreakDashboardScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAppPicker = { navController.navigate(Screen.AppPicker.route) },
-                onNavigateToAppDetail = { appId -> navController.navigate(Screen.AppStreakDetail.createRoute(appId)) },
+                onNavigateToAppDetail = { appId ->
+                    navController.navigate(Screen.StreakDetail.createRoute(StreakType.APP, appId))
+                },
                 onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) }
             )
         }
@@ -182,10 +225,14 @@ fun NeverMissNavGraph(
             )
         ) { backStackEntry ->
             val appId = backStackEntry.arguments?.getLong("appId") ?: -1L
-            AppStreakDetailScreen(
-                appId = appId,
+            CommonStreakDetailScreen(
+                type = StreakType.APP,
+                id = appId,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAccount = { currentAppId, accountId ->
+                onNavigateToEdit = { editId ->
+                    navController.navigate(Screen.CreateStreak.createRoute(editId))
+                },
+                onNavigateToAccountDetail = { currentAppId, accountId ->
                     navController.navigate(Screen.AccountDetail.createRoute(currentAppId, accountId))
                 }
             )

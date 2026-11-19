@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
+import com.devson.NeverMiss.domain.model.StreakType
 import com.devson.NeverMiss.domain.model.StreakCategory
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.ui.theme.*
@@ -76,6 +77,7 @@ data class Particle(
 fun HomeScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToEdit: (Long) -> Unit,
+    onNavigateToStreakDetail: (Long, StreakType) -> Unit = { _, _ -> },
     onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAppStreaks: () -> Unit = {},
@@ -502,14 +504,7 @@ fun HomeScreen(
                                 StreakGridCard(
                                     streak = streak,
                                     isCompletedToday = isDone,
-                                    onClick = {
-                                        if (!isDone) {
-                                            viewModel.completeStreak(streak.id)
-                                            triggerConfetti = true
-                                        } else {
-                                            viewModel.completeStreak(streak.id)
-                                        }
-                                    },
+                                    onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
                                     onLongClick = { onNavigateToEdit(streak.id) },
                                     onOptionsClick = { selectedStreakForMenu = streak }
                                 )
@@ -531,14 +526,7 @@ fun HomeScreen(
                                     StreakCard(
                                         streak = streak,
                                         isCompletedToday = isDone,
-                                        onClick = {
-                                            if (!isDone) {
-                                                viewModel.completeStreak(streak.id)
-                                                triggerConfetti = true
-                                            } else {
-                                                viewModel.completeStreak(streak.id)
-                                            }
-                                        },
+                                        onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
                                         onLongClick = { onNavigateToEdit(streak.id) },
                                         onOptionsClick = { selectedStreakForMenu = streak }
                                     )
@@ -553,10 +541,7 @@ fun HomeScreen(
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,
-                                            onClick = {
-                                                viewModel.completeStreak(streak.id)
-                                                triggerConfetti = true
-                                            },
+                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
                                             onLongClick = { onNavigateToEdit(streak.id) },
                                             onOptionsClick = { selectedStreakForMenu = streak }
                                         )
@@ -572,7 +557,7 @@ fun HomeScreen(
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = true,
-                                            onClick = { viewModel.completeStreak(streak.id) },
+                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
                                             onLongClick = { onNavigateToEdit(streak.id) },
                                             onOptionsClick = { selectedStreakForMenu = streak }
                                         )
@@ -591,10 +576,7 @@ fun HomeScreen(
                                         StreakCard(
                                             streak = streak,
                                             isCompletedToday = false,
-                                            onClick = {
-                                                viewModel.completeStreak(streak.id)
-                                                triggerConfetti = true
-                                            },
+                                            onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
                                             onLongClick = { onNavigateToEdit(streak.id) },
                                             onOptionsClick = { selectedStreakForMenu = streak }
                                         )
@@ -710,6 +692,18 @@ fun HomeScreen(
                             iconColor = MaterialTheme.colorScheme.secondary,
                             onClick = {
                                 viewModel.togglePauseStreak(streak)
+                                selectedStreakForMenu = null
+                            }
+                        )
+
+                        // View Details option
+                        SheetOptionItem(
+                            icon = Icons.Default.Info,
+                            title = "View Details",
+                            description = "View streak statistics, calendar history, and management actions",
+                            iconColor = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                onNavigateToStreakDetail(streak.id, StreakType.NORMAL)
                                 selectedStreakForMenu = null
                             }
                         )
