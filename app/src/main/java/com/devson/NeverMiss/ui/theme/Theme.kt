@@ -21,6 +21,10 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = AccentCoral,
     background = ObsidianBg,
     surface = CardSlate,
+    primaryContainer = Color(0xFF2E1065),
+    onPrimaryContainer = Color(0xFFEDE9FE),
+    tertiaryContainer = Color(0xFF4C0519),
+    onTertiaryContainer = Color(0xFFFFE4E6),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
@@ -37,6 +41,10 @@ private val LightColorScheme = lightColorScheme(
     tertiary = AccentCoral,
     background = Color(0xFFF8FAFC),
     surface = Color.White,
+    primaryContainer = Color(0xFFEDE9FE),
+    onPrimaryContainer = Color(0xFF4C1D95),
+    tertiaryContainer = Color(0xFFFFE4E6),
+    onTertiaryContainer = Color(0xFF9F1239),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
@@ -58,7 +66,7 @@ fun NeverMissTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
+        darkThgieme -> DarkColorScheme
         else -> LightColorScheme
     }
 

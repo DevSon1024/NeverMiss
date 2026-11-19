@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,12 +34,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.devson.NeverMiss.core.apptracking.permission.UsageAccessPermissionHelper
 import com.devson.NeverMiss.data.local.apps.InstalledAppInfo
-import com.devson.NeverMiss.ui.theme.AccentCoral
-import com.devson.NeverMiss.ui.theme.CardSlate
-import com.devson.NeverMiss.ui.theme.PrimaryViolet
-import com.devson.NeverMiss.ui.theme.SecondaryTeal
 import com.devson.NeverMiss.viewmodel.appstreaks.InstalledAppPickerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +86,7 @@ fun InstalledAppPickerScreen(
                         Icon(
                             imageVector = Icons.Default.FilterList,
                             contentDescription = "Toggle System Apps",
-                            tint = if (state.showSystemApps) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (state.showSystemApps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -120,24 +117,40 @@ fun InstalledAppPickerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search by name or package...") },
+                placeholder = {
+                    Text(
+                        text = "Search by name or package...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 },
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryViolet,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = CardSlate,
-                    unfocusedContainerColor = CardSlate
+                    cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -158,7 +171,7 @@ fun InstalledAppPickerScreen(
                     text = "${state.trackedCount} currently tracked",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PrimaryViolet
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -170,7 +183,7 @@ fun InstalledAppPickerScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PrimaryViolet)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (state.filteredApps.isEmpty()) {
                 Box(
@@ -227,17 +240,31 @@ fun InstalledAppCard(
     appInfo: InstalledAppInfo,
     onToggleTracking: () -> Unit
 ) {
+    val isTracked = appInfo.isTracked && appInfo.isTrackingEnabled
+    val containerColor = if (isTracked) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val borderColor = if (isTracked) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onToggleTracking() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardSlate)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // App Icon
@@ -271,12 +298,20 @@ fun InstalledAppCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 if (appInfo.isSystemApp) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "System",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Text(
+                            text = "SYSTEM",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
 
@@ -284,11 +319,13 @@ fun InstalledAppCard(
 
             // Tracking Switch
             Switch(
-                checked = appInfo.isTracked && appInfo.isTrackingEnabled,
+                checked = isTracked,
                 onCheckedChange = { onToggleTracking() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = PrimaryViolet,
-                    checkedTrackColor = PrimaryViolet.copy(alpha = 0.4f)
+                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
         }
@@ -304,7 +341,8 @@ fun UsageAccessBanner(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = AccentCoral.copy(alpha = 0.15f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -315,7 +353,7 @@ fun UsageAccessBanner(
             Icon(
                 imageVector = Icons.Default.Security,
                 contentDescription = "Usage Access",
-                tint = AccentCoral,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -336,7 +374,10 @@ fun UsageAccessBanner(
                 Button(
                     onClick = onGrantClick,
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentCoral),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
