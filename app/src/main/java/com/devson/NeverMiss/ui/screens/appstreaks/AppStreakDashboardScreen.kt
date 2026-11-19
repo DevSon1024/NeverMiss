@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.domain.model.apptracking.TrackedApp
+import com.devson.NeverMiss.navigation.Screen
+import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardUiState
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardViewModel
 import com.devson.NeverMiss.viewmodel.appstreaks.TrackedAppSummary
@@ -63,6 +65,9 @@ fun AppStreakDashboardScreen(
     onNavigateToAppPicker: () -> Unit,
     onNavigateToAppDetail: (Long) -> Unit,
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: AppStreakDashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -105,6 +110,18 @@ fun AppStreakDashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
+            )
+        },
+        bottomBar = {
+            FloatingCapsuleNavigationBar(
+                currentRoute = Screen.AppStreaksDashboard.route,
+                onNavigateToRoute = { route ->
+                    when (route) {
+                        Screen.Home.route -> onNavigateToHome()
+                        Screen.Analytics.route -> onNavigateToAnalytics()
+                        Screen.Settings.route -> onNavigateToSettings()
+                    }
+                }
             )
         },
         floatingActionButton = {

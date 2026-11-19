@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.core.util.AppClock
+import com.devson.NeverMiss.navigation.Screen
+import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.viewmodel.AnalyticsState
 import com.devson.NeverMiss.viewmodel.AnalyticsViewModel
@@ -55,6 +57,7 @@ fun AnalyticsScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToAppStreaks: () -> Unit = {},
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -72,27 +75,16 @@ fun AnalyticsScreen(
             )
         },
         bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.height(72.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.Home, contentDescription = "Home")
-                    }
-                    IconButton(onClick = { /* Current Screen */ }) {
-                        Icon(Icons.Default.Analytics, contentDescription = "Analytics", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+            FloatingCapsuleNavigationBar(
+                currentRoute = Screen.Analytics.route,
+                onNavigateToRoute = { route ->
+                    when (route) {
+                        Screen.Home.route -> onNavigateToHome()
+                        Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
+                        Screen.Settings.route -> onNavigateToSettings()
                     }
                 }
-            }
+            )
         }
     ) { innerPadding ->
         Surface(

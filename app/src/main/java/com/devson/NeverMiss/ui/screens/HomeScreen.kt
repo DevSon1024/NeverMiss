@@ -34,6 +34,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.core.util.TrackedAppIcon
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakType
+import com.devson.NeverMiss.navigation.Screen
+import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
 import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
@@ -108,43 +110,16 @@ fun HomeScreen(
                 )
             },
             bottomBar = {
-                BottomAppBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.height(68.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { /* Current Home */ }) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Home",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(onClick = onNavigateToAppStreaks) {
-                            Icon(
-                                imageVector = Icons.Default.Apps,
-                                contentDescription = "App Streaks"
-                            )
-                        }
-                        IconButton(onClick = onNavigateToAnalytics) {
-                            Icon(
-                                imageVector = Icons.Default.Analytics,
-                                contentDescription = "Analytics"
-                            )
-                        }
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings"
-                            )
+                FloatingCapsuleNavigationBar(
+                    currentRoute = Screen.Home.route,
+                    onNavigateToRoute = { route ->
+                        when (route) {
+                            Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
+                            Screen.Analytics.route -> onNavigateToAnalytics()
+                            Screen.Settings.route -> onNavigateToSettings()
                         }
                     }
-                }
+                )
             },
             floatingActionButton = {
                 ExpandableFabMenu(

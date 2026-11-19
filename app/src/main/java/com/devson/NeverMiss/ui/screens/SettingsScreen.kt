@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.data.local.preferences.UserPreferences
+import com.devson.NeverMiss.navigation.Screen
+import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.viewmodel.SettingsViewModel
 import kotlinx.coroutines.delay
@@ -48,6 +51,7 @@ fun SettingsScreen(
     onNavigateToAnalytics: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToAppStreaks: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -89,34 +93,23 @@ fun SettingsScreen(
                 title = { Text("Settings", color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.height(72.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.Home, contentDescription = "Home")
-                    }
-                    IconButton(onClick = onNavigateToAnalytics) {
-                        Icon(Icons.Default.Analytics, contentDescription = "Analytics")
-                    }
-                    IconButton(onClick = { /* Already here */ }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
+            FloatingCapsuleNavigationBar(
+                currentRoute = Screen.Settings.route,
+                onNavigateToRoute = { route ->
+                    when (route) {
+                        Screen.Home.route -> onNavigateToHome()
+                        Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
+                        Screen.Analytics.route -> onNavigateToAnalytics()
                     }
                 }
-            }
+            )
         }
     ) { innerPadding ->
         Surface(

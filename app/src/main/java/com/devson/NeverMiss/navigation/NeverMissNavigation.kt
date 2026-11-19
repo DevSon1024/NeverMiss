@@ -178,6 +178,13 @@ fun NeverMissNavGraph(
                         restoreState = true
                     }
                 },
+                onNavigateToAppStreaks = {
+                    navController.navigate(Screen.AppStreaksDashboard.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -193,6 +200,13 @@ fun NeverMissNavGraph(
                 },
                 onNavigateToAnalytics = {
                     navController.navigate(Screen.Analytics.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToAppStreaks = {
+                    navController.navigate(Screen.AppStreaksDashboard.route) {
                         popUpTo(Screen.Home.route) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
@@ -216,7 +230,28 @@ fun NeverMissNavGraph(
                 onNavigateToAppDetail = { appId ->
                     navController.navigate(Screen.StreakDetail.createRoute(StreakType.APP, appId))
                 },
-                onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) }
+                onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToAnalytics = {
+                    navController.navigate(Screen.Analytics.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
 
