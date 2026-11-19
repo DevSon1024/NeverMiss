@@ -7,6 +7,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.BackoffPolicy
+import com.devson.NeverMiss.core.apptracking.worker.AppTrackingScheduler
 import com.devson.NeverMiss.core.reminder.DailyStreakWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
@@ -18,6 +19,9 @@ class App : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var appTrackingScheduler: AppTrackingScheduler
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -26,6 +30,7 @@ class App : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         scheduleDailyStreakCheck()
+        appTrackingScheduler.schedulePeriodicReconciliation()
     }
 
     private fun scheduleDailyStreakCheck() {

@@ -3,6 +3,7 @@ package com.devson.NeverMiss.core.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.devson.NeverMiss.core.apptracking.worker.AppTrackingScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,9 @@ class BootReceiver : BroadcastReceiver() {
     @Inject
     lateinit var reminderScheduler: ReminderScheduler
 
+    @Inject
+    lateinit var appTrackingScheduler: AppTrackingScheduler
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -25,6 +29,7 @@ class BootReceiver : BroadcastReceiver() {
             scope.launch {
                 try {
                     reminderScheduler.scheduleAllActiveReminders()
+                    appTrackingScheduler.schedulePeriodicReconciliation()
                 } finally {
                     pendingResult.finish()
                 }

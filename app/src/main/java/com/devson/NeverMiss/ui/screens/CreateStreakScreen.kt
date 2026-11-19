@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -374,6 +376,68 @@ fun CreateStreakScreen(
                                 Text(formattedTime, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
+                    }
+                }
+
+                // SECTION: ALREADY HAVE A STREAK? (OPTIONAL)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "STARTING STREAK PROGRESS (OPTIONAL)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Text(
+                            text = "Already maintaining this habit? Enter your ongoing streak count to continue seamlessly without starting from zero.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        OutlinedTextField(
+                            value = state.initialStreak,
+                            onValueChange = viewModel::onInitialStreakChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Already Maintained Streak (Days)") },
+                            placeholder = { Text("0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            leadingIcon = {
+                                Text("🔥", fontSize = 18.sp, modifier = Modifier.padding(start = 12.dp, end = 4.dp))
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.background,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+
+                        val currentCount = state.initialStreak.toIntOrNull() ?: 0
+                        val previewText = if (currentCount > 0) {
+                            "✨ Your streak will start at $currentCount days and advance to ${currentCount + 1} upon today's completion."
+                        } else {
+                            "Your streak will start at 0 days and advance to 1 upon today's completion."
+                        }
+
+                        Text(
+                            text = previewText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (currentCount > 0) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 

@@ -42,6 +42,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var reminderScheduler: ReminderScheduler
 
+    @Inject
+    lateinit var processAppUsageEventsUseCase: com.devson.NeverMiss.domain.usecase.appstreaks.ProcessAppUsageEventsUseCase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -95,6 +98,18 @@ class MainActivity : ComponentActivity() {
                         NeverMissNavGraph(navController = navController)
                     }
                 }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Fast-path foreground reconciliation catch-up
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                processAppUsageEventsUseCase()
+            } catch (e: Exception) {
+                // Ignore transient errors on resume
             }
         }
     }

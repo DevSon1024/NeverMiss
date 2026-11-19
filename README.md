@@ -18,6 +18,22 @@
 ## 📸 Overview & Features
 
 ### 🌟 Key Features
+- **Automatic App Streak Tracking**:
+  - Automatically detect daily interaction with installed applications (e.g., Duolingo, Reddit, GitHub).
+  - Background usage event normalization across Android API 21 through 36 via `UsageStatsManager`.
+  - 2-second debouncing window preventing duplicate completions on task switching.
+- **Multi-Account Sub-Streaks**:
+  - Maintain independent named sub-streaks (e.g., Personal, Developer, Anonymous) under a single application.
+  - Strict privacy-first explicit attribution: NeverMiss prompts for confirmation after an app session and only credits explicitly selected accounts.
+- **App Streak Dashboard & Analytics**:
+  - Dedicated App Streaks dashboard with today completion badges and active streak counters.
+  - Per-app and per-account monthly completion calendar heatmaps.
+  - Detailed sub-streak management: add, rename, enable/disable, or delete accounts.
+- **Background Reliability & Diagnostics**:
+  - 15-minute periodic reconciliation via `WorkManager` (`AppUsageReconciliationWorker`) with exponential backoff.
+  - Fast-path foreground reconciliation on `MainActivity.onResume` for instant credit.
+  - Device reboot restoration (`BootReceiver`).
+  - Built-in Tracking Diagnostics screen to audit permissions, checkpoints, WorkManager state, and OEM battery optimization guidance.
 - **Flexible Habit Scheduling**: Create daily habits, custom interval streaks (e.g., every 3 days), or specific weekday routines (Mon, Wed, Fri).
 - **Smart Alarm & Notification System**:
   - Exact Alarm scheduling (`AlarmManager` & `AlarmReceiver`).
@@ -34,7 +50,7 @@
 - **Home Screen Widget Integration**:
   - Android AppWidget provider (`StreakWidgetProvider`) for quick at-a-glance status updates.
 - **Privacy First & Offline Engine**:
-  - Local-first data architecture powered by SQLite & Room Database. No cloud account required.
+  - 100% on-device local storage powered by Room Database (v2). Zero network telemetry, zero cloud tracking. Narrow `<queries>` visibility avoiding broad permission risks.
 
 ---
 
@@ -71,6 +87,7 @@ NeverMiss follows **Clean Architecture** principles combined with modern Android
 | **Dependency Injection** | [Dagger Hilt](https://dagger.dev/hilt/) + `hilt-navigation-compose` |
 | **Local Database** | [Room Database](https://developer.android.com/training/data-storage/room) + KSP |
 | **Preferences** | [Jetpack DataStore](https://developer.android.com/topic/libraries/architecture/datastore) (Preferences) |
+| **Usage Tracking** | Android `UsageStatsManager` & `UsageEvents` |
 | **Background Processing** | [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) + `AlarmManager` |
 | **Image Loading** | [Coil Compose](https://coil-kt.github.io/coil/compose/) |
 | **Asynchronous Engine** | Kotlin Coroutines & `Flow` |
@@ -105,27 +122,35 @@ The project is undergoing active refactoring. Below are current known operationa
 ```text
 com.devson.NeverMiss/
 ├── App.kt                           # Application entrypoint (Hilt & WorkManager init)
-├── MainActivity.kt                  # Single-activity Compose host
+├── MainActivity.kt                  # Single-activity Compose host (with onResume catch-up)
 ├── core/
+│   ├── apptracking/                 # Tracking engine, event normalizer, permissions, worker, notifications
+│   │   ├── engine/                  # AppUsageTrackingEngine, UsageEventNormalizer, UsageStatsManagerHelper
+│   │   ├── notification/            # AccountConfirmationNotifier
+│   │   ├── permission/              # UsageAccessPermissionHelper
+│   │   └── worker/                  # AppUsageReconciliationWorker, AppTrackingScheduler
 │   ├── di/                          # Hilt Modules (DatabaseModule, RepositoryModule)
 │   ├── reminder/                    # AlarmReceiver, BootReceiver, NotificationHelper, DailyStreakWorker
 │   ├── util/                        # AppClock, Date format helpers
 │   └── widget/                      # StreakWidgetProvider
 ├── data/
 │   ├── local/
-│   │   ├── db/                      # Room Entities (StreakEntity, CompletionHistoryEntity, StreakDao)
+│   │   ├── apps/                    # InstalledAppScanner, InstalledAppInfo
+│   │   ├── db/                      # Room Database (v2), Entities, DAOs, Migrations (MIGRATION_1_2)
 │   │   └── preferences/             # DataStore UserPreferences
-│   └── repository/                  # StreakRepositoryImpl
+│   └── repository/                  # StreakRepositoryImpl, AppStreakRepositoryImpl
 ├── domain/
-│   ├── model/                       # Streak, StreakCategory, StreakCalculator
-│   ├── repository/                  # StreakRepository contract
-│   └── usecase/                     # CreateStreak, LogCompletion, CheckAndResetMissedStreaks
-├── navigation/                      # NeverMissNavigation routes
+│   ├── calculator/                  # AppStreakCalculator
+│   ├── model/                       # Streak, TrackedApp, TrackedAccount, AppStreakCompletion, PendingConfirmation
+│   ├── repository/                  # StreakRepository, AppStreakRepository
+│   └── usecase/                     # Habit and App Streak use cases
+├── navigation/                      # NeverMissNavGraph, Screen routes
 ├── ui/
-│   ├── screens/                     # HomeScreen, CreateStreakScreen, AnalyticsScreen, SettingsScreen
+│   ├── screens/                     # HomeScreen, AnalyticsScreen, SettingsScreen
+│   │   └── appstreaks/              # Dashboard, Detail, SubStreak, Picker, Diagnostics
 │   ├── theme/                       # Color, Type, Material 3 Theme setup
 │   └── util/                        # CategoryIconHelper
-└── viewmodel/                       # HomeViewModel, CreateStreakViewModel, AnalyticsViewModel, SettingsViewModel
+└── viewmodel/                       # Habit & App Streak ViewModels
 ```
 
 ---
