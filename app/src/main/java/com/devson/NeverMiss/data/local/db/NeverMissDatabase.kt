@@ -19,7 +19,7 @@ import com.devson.NeverMiss.data.local.db.apptracking.UsageCheckpointEntity
         UsageCheckpointEntity::class,
         PendingConfirmationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class NeverMissDatabase : RoomDatabase() {

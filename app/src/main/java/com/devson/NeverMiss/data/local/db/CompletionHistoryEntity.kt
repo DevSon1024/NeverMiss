@@ -25,6 +25,6 @@ data class CompletionHistoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val streakId: Long,
     val date: String, // yyyy-MM-dd
-    val status: String, // COMPLETED, SKIPPED, FROZEN, PAUSED
+    val status: String, // COMPLETED, SKIPPED, PAUSED
     val timestamp: Long // epoch millis of logging
 )

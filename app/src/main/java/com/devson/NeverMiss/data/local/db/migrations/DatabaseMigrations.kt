@@ -145,4 +145,11 @@ object DatabaseMigrations {
             db.execSQL("UPDATE `tracked_accounts` SET `updatedAt` = `createdAt` WHERE `updatedAt` = 0")
         }
     }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Safely convert any historical FROZEN completion records to SKIPPED
+            db.execSQL("UPDATE `completion_history` SET `status` = 'SKIPPED' WHERE `status` = 'FROZEN'")
+        }
+    }
 }

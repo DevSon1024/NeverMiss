@@ -95,7 +95,7 @@ object StreakCalculator {
                     CompletionStatus.COMPLETED -> {
                         current++
                     }
-                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN, CompletionStatus.PAUSED -> {
+                    CompletionStatus.SKIPPED, CompletionStatus.PAUSED -> {
                         // Keeps streak alive but doesn't increment the counter
                     }
                     null -> {
@@ -135,7 +135,7 @@ object StreakCalculator {
                             maxStreak = runningStreak
                         }
                     }
-                    CompletionStatus.SKIPPED, CompletionStatus.FROZEN, CompletionStatus.PAUSED -> {
+                    CompletionStatus.SKIPPED, CompletionStatus.PAUSED -> {
                         // Keeps running streak alive but doesn't increment
                     }
                     null -> {

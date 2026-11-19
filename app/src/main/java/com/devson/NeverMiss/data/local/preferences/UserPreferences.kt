@@ -62,28 +62,6 @@ class UserPreferences @Inject constructor(
             preferences[PreferencesKeys.SNOOZE_DURATION] ?: 15
         }
 
-    val streakFreezesFlow: Flow<Int> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw exception
-            }
-        }.map { preferences ->
-            preferences[PreferencesKeys.STREAK_FREEZES] ?: 3
-        }
-
-    val maxStreakFreezesFlow: Flow<Int> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw exception
-            }
-        }.map { preferences ->
-            preferences[PreferencesKeys.MAX_STREAK_FREEZES] ?: 5
-        }
-
     val appLockPinFlow: Flow<String> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
@@ -135,18 +113,6 @@ class UserPreferences @Inject constructor(
         }
     }
 
-    suspend fun updateStreakFreezes(freezes: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.STREAK_FREEZES] = freezes
-        }
-    }
-
-    suspend fun setMaxStreakFreezes(maxFreezes: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.MAX_STREAK_FREEZES] = maxFreezes
-        }
-    }
-
     suspend fun setAppLockPin(pin: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_PIN] = pin
@@ -173,8 +139,6 @@ class UserPreferences @Inject constructor(
         val THEME = stringPreferencesKey("theme")
         val DYNAMIC_COLORS = booleanPreferencesKey("dynamic_colors")
         val SNOOZE_DURATION = intPreferencesKey("snooze_duration")
-        val STREAK_FREEZES = intPreferencesKey("streak_freezes")
-        val MAX_STREAK_FREEZES = intPreferencesKey("max_streak_freezes")
         val APP_LOCK_PIN = stringPreferencesKey("app_lock_pin")
         val DEV_OVERRIDE_DATE_ENABLED = booleanPreferencesKey("dev_override_date_enabled")
         val DEV_OVERRIDE_DATE = stringPreferencesKey("dev_override_date")

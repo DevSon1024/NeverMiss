@@ -213,32 +213,6 @@ fun SettingsScreen(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text("Max Streak Freezes Limit", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Maximum freeze counts you are allowed to accumulate", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val freezeOptions = listOf(3, 5, 8, 10)
-                            freezeOptions.forEach { limit ->
-                                val isSelected = state.maxStreakFreezes == limit
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
-                                        .clickable { viewModel.setMaxStreakFreezes(limit) }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("$limit Coins", color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
                     }
                 }
 

@@ -36,7 +36,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_DONE = "com.devson.NeverMiss.ACTION_DONE"
         const val ACTION_SNOOZE = "com.devson.NeverMiss.ACTION_SNOOZE"
         const val ACTION_SKIP = "com.devson.NeverMiss.ACTION_SKIP"
-        const val ACTION_FREEZE = "com.devson.NeverMiss.ACTION_FREEZE"
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -59,14 +58,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     }
                     ACTION_SKIP -> {
                         logCompletionUseCase(streakId, todayStr, CompletionStatus.SKIPPED)
-                    }
-                    ACTION_FREEZE -> {
-                        val success = logCompletionUseCase(streakId, todayStr, CompletionStatus.FROZEN)
-                        if (!success) {
-                            launch(Dispatchers.Main) {
-                                Toast.makeText(context, "No freezes available!", Toast.LENGTH_SHORT).show()
-                            }
-                        }
                     }
                     ACTION_SNOOZE -> {
                         val snoozeMins = userPreferences.snoozeDurationMinutesFlow.first()

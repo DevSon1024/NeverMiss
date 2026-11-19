@@ -29,7 +29,6 @@ data class SettingsState(
     val theme: UserPreferences.AppTheme = UserPreferences.AppTheme.SYSTEM,
     val dynamicColorsEnabled: Boolean = true,
     val snoozeDurationMinutes: Int = 15,
-    val maxStreakFreezes: Int = 5,
     val appLockPin: String = "",
     val devOverrideDateEnabled: Boolean = false,
     val devOverrideDate: String = "",
@@ -41,7 +40,7 @@ data class SettingsState(
 @Serializable
 data class BackupData(
     val streaks: List<StreakBackup>,
-    val freezesBalance: Int
+    val freezesBalance: Int = 0
 )
 
 @Serializable
@@ -96,7 +95,6 @@ class SettingsViewModel @Inject constructor(
         userPreferences.themeFlow,
         userPreferences.dynamicColorsFlow,
         userPreferences.snoozeDurationMinutesFlow,
-        userPreferences.maxStreakFreezesFlow,
         userPreferences.appLockPinFlow,
         userPreferences.devOverrideDateEnabledFlow,
         userPreferences.devOverrideDateFlow,
@@ -106,19 +104,17 @@ class SettingsViewModel @Inject constructor(
         val theme = flowsArray[0] as UserPreferences.AppTheme
         val dynamicColors = flowsArray[1] as Boolean
         val snooze = flowsArray[2] as Int
-        val maxFreezes = flowsArray[3] as Int
-        val pin = flowsArray[4] as String
-        val devOverrideEnabled = flowsArray[5] as Boolean
-        val devOverrideDate = flowsArray[6] as String
+        val pin = flowsArray[3] as String
+        val devOverrideEnabled = flowsArray[4] as Boolean
+        val devOverrideDate = flowsArray[5] as String
         @Suppress("UNCHECKED_CAST")
-        val status = flowsArray[7] as Pair<Boolean?, Boolean?>
-        val err = flowsArray[8] as String?
+        val status = flowsArray[6] as Pair<Boolean?, Boolean?>
+        val err = flowsArray[7] as String?
 
         SettingsState(
             theme = theme,
             dynamicColorsEnabled = dynamicColors,
             snoozeDurationMinutes = snooze,
-            maxStreakFreezes = maxFreezes,
             appLockPin = pin,
             devOverrideDateEnabled = devOverrideEnabled,
             devOverrideDate = devOverrideDate,
@@ -147,12 +143,6 @@ class SettingsViewModel @Inject constructor(
     fun setSnoozeDuration(minutes: Int) {
         viewModelScope.launch {
             userPreferences.setSnoozeDuration(minutes)
-        }
-    }
-
-    fun setMaxStreakFreezes(maxFreezes: Int) {
-        viewModelScope.launch {
-            userPreferences.setMaxStreakFreezes(maxFreezes)
         }
     }
 
@@ -226,10 +216,8 @@ class SettingsViewModel @Inject constructor(
                     )
                 }
 
-                val currentFreezes = userPreferences.streakFreezesFlow.first()
                 val backupData = BackupData(
-                    streaks = streaksBackup,
-                    freezesBalance = currentFreezes
+                    streaks = streaksBackup
                 )
 
                 val jsonString = json.encodeToString(BackupData.serializer(), backupData)
@@ -260,9 +248,6 @@ class SettingsViewModel @Inject constructor(
 
                 // Clear Database
                 database.clearAllTables()
-
-                // Restore Freezes Balance
-                userPreferences.updateStreakFreezes(backupData.freezesBalance)
 
                 // Restore Streaks and Nested History
                 backupData.streaks.forEach { backupStreak ->
