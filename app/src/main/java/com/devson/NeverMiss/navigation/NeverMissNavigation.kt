@@ -22,6 +22,16 @@ import com.devson.NeverMiss.ui.screens.appstreaks.AppStreakDashboardScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.InstalledAppPickerScreen
 import com.devson.NeverMiss.ui.screens.appstreaks.TrackingDiagnosticsScreen
 import com.devson.NeverMiss.ui.screens.detail.CommonStreakDetailScreen
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface IntervalTimerSettingsEntryPoint {
+    fun intervalTimerSettingsRepository(): com.devson.NeverMiss.core.reminder.interval.IntervalTimerSettingsRepository
+    fun intervalTimerAlertPlayback(): com.devson.NeverMiss.core.reminder.interval.IntervalTimerAlertPlayback
+}
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -43,6 +53,8 @@ sealed class Screen(val route: String) {
     }
     object TrackingDiagnostics : Screen("tracking_diagnostics")
     object Archive : Screen("archive")
+    object IntervalTimers : Screen("interval_timers")
+    object IntervalTimerSettings : Screen("interval_timer_settings")
 }
 
 @Composable
@@ -108,6 +120,9 @@ fun NeverMissNavGraph(
                 },
                 onNavigateToArchive = {
                     navController.navigate(Screen.Archive.route)
+                },
+                onNavigateToIntervalTimers = {
+                    navController.navigate(Screen.IntervalTimers.route)
                 }
             )
         }
@@ -312,6 +327,26 @@ fun NeverMissNavGraph(
                 onNavigateToStreakDetail = { id, type ->
                     navController.navigate(Screen.StreakDetail.createRoute(type, id))
                 }
+            )
+        }
+
+        composable(route = Screen.IntervalTimers.route) {
+            com.devson.NeverMiss.ui.screens.intervaltimer.IntervalTimerScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Screen.IntervalTimerSettings.route) }
+            )
+        }
+
+        composable(route = Screen.IntervalTimerSettings.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                IntervalTimerSettingsEntryPoint::class.java
+            )
+            com.devson.NeverMiss.ui.screens.intervaltimer.IntervalTimerSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                settingsRepository = entryPoint.intervalTimerSettingsRepository(),
+                alertPlayback = entryPoint.intervalTimerAlertPlayback()
             )
         }
     }

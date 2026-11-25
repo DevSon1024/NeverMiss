@@ -152,4 +152,34 @@ object DatabaseMigrations {
             db.execSQL("UPDATE `completion_history` SET `status` = 'SKIPPED' WHERE `status` = 'FROZEN'")
         }
     }
+
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `interval_timers` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `mode` TEXT NOT NULL,
+                    `durationMillis` INTEGER NOT NULL,
+                    `intervalMillis` INTEGER NOT NULL,
+                    `repeatLimit` INTEGER,
+                    `completedOccurrences` INTEGER NOT NULL,
+                    `status` TEXT NOT NULL,
+                    `startedAtMillis` INTEGER,
+                    `nextTriggerAtMillis` INTEGER,
+                    `remainingAtPauseMillis` INTEGER,
+                    `createdAtMillis` INTEGER NOT NULL,
+                    `updatedAtMillis` INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_interval_timers_status` ON `interval_timers` (`status`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_interval_timers_nextTriggerAtMillis` ON `interval_timers` (`nextTriggerAtMillis`)"
+            )
+        }
+    }
 }
