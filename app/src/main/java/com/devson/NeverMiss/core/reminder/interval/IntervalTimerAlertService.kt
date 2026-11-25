@@ -10,6 +10,11 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.devson.NeverMiss.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -17,6 +22,9 @@ class IntervalTimerAlertService : Service() {
 
     @Inject
     lateinit var alertPlayback: IntervalTimerAlertPlayback
+
+    private var timeoutJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.Main)
 
     companion object {
         const val ACTION_START_ALERT = "com.devson.NeverMiss.ACTION_START_ALERT"
@@ -81,14 +89,23 @@ class IntervalTimerAlertService : Service() {
                 startForeground(ALERT_NOTIFICATION_ID, notification)
             }
 
-            // 2. Start audio and vibration playback
-            alertPlayback.startAlert(customDurationMillis = 30_000L)
+            // 2. Start audio and vibration playback respecting user duration settings
+            alertPlayback.startAlert()
+
+            // 3. Safety auto-shutdown after max duration to guarantee foreground service cleanup
+            timeoutJob?.cancel()
+            timeoutJob = scope.launch {
+                delay(125_000L)
+                stopAlertAndSelf()
+            }
         }
 
         return START_NOT_STICKY
     }
 
     private fun stopAlertAndSelf() {
+        timeoutJob?.cancel()
+        timeoutJob = null
         alertPlayback.stopAlert()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -100,6 +117,8 @@ class IntervalTimerAlertService : Service() {
     }
 
     override fun onDestroy() {
+        timeoutJob?.cancel()
+        timeoutJob = null
         alertPlayback.stopAlert()
         super.onDestroy()
     }

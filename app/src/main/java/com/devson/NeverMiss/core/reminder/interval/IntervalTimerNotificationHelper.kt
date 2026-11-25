@@ -135,6 +135,7 @@ class IntervalTimerNotificationHelper @Inject constructor(
                 "Dismiss",
                 dismissPendingIntent
             )
+            builder.setDeleteIntent(dismissPendingIntent)
         } else {
             // Repeating interval timer
             if (timer.status == IntervalTimerStatus.COMPLETED) {
@@ -148,6 +149,7 @@ class IntervalTimerNotificationHelper @Inject constructor(
                     "Dismiss",
                     dismissPendingIntent
                 )
+                builder.setDeleteIntent(dismissPendingIntent)
             } else {
                 // Still running interval
                 val donePendingIntent = createActionPendingIntent(
@@ -178,6 +180,7 @@ class IntervalTimerNotificationHelper @Inject constructor(
                     "Stop",
                     stopPendingIntent
                 )
+                builder.setDeleteIntent(donePendingIntent)
             }
         }
 

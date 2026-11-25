@@ -1,5 +1,6 @@
 package com.devson.NeverMiss.core.reminder.interval
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -40,6 +41,7 @@ class IntervalTimerAlarmSchedulerImpl @Inject constructor(
             ?: IntervalTimerAlarmContract.createPendingIntent(context, timerId)
     }
 
+    @SuppressLint("NewApi")
     override fun canScheduleExactAlarms(): Boolean {
         val manager = alarmManager ?: return false
         val sdkInt = sdkIntOverride ?: Build.VERSION.SDK_INT
