@@ -108,6 +108,66 @@ fun IntervalTimerScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Permission Banner (if notifications or exact alarms are denied)
+            val permissions = uiState.permissionsSnapshot
+            val context = androidx.compose.ui.platform.LocalContext.current
+            if (permissions != null &&
+                (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ||
+                 permissions.exactAlarmStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Permission Alert",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED) {
+                                    "Notifications are disabled. Timers will run, but visible alerts will be suppressed."
+                                } else {
+                                    "Exact alarms are disabled. Triggers may be slightly delayed by system power saving."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                val intent = if (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED) {
+                                    viewModel.permissionManager.createNotificationSettingsIntent()
+                                } else {
+                                    viewModel.permissionManager.createExactAlarmSettingsIntent()
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (_: Throwable) {
+                                }
+                            }
+                        ) {
+                            Text("Settings")
+                        }
+                    }
+                }
+            }
+
             // Filter chips
             FilterChipRow(
                 selectedStatus = uiState.filterStatus,

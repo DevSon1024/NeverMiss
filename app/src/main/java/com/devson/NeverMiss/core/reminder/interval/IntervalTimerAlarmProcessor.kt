@@ -15,6 +15,7 @@ class IntervalTimerAlarmProcessor @Inject constructor(
     private val advanceOccurrenceUseCase: AdvanceIntervalTimerOccurrenceUseCase,
     private val completeTimerUseCase: CompleteIntervalTimerUseCase,
     private val notificationHelper: IntervalTimerNotificationHelper,
+    private val alertManager: IntervalTimerAlertManager,
     private val timeProvider: TimeProvider
 ) {
 
@@ -45,6 +46,7 @@ class IntervalTimerAlarmProcessor @Inject constructor(
                     val updatedTimer = repository.getTimerById(timerId)
                     if (updatedTimer != null && updatedTimer.status == IntervalTimerStatus.COMPLETED) {
                         notificationHelper.showTimerNotification(updatedTimer)
+                        alertManager.startAlert(updatedTimer.id, updatedTimer.title)
                     }
                 }
             }
@@ -55,6 +57,7 @@ class IntervalTimerAlarmProcessor @Inject constructor(
                     val updatedTimer = repository.getTimerById(timerId)
                     if (updatedTimer != null) {
                         notificationHelper.showTimerNotification(updatedTimer)
+                        alertManager.startAlert(updatedTimer.id, updatedTimer.title)
                     }
                 }
             }

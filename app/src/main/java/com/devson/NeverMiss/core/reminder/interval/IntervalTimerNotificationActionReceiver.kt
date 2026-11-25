@@ -24,6 +24,9 @@ class IntervalTimerNotificationActionReceiver : BroadcastReceiver() {
     @Inject
     lateinit var notificationHelper: IntervalTimerNotificationHelper
 
+    @Inject
+    lateinit var alertManager: IntervalTimerAlertManager
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -37,6 +40,7 @@ class IntervalTimerNotificationActionReceiver : BroadcastReceiver() {
             try {
                 // Dismiss or cancel notification first for immediate responsiveness
                 notificationHelper.cancelNotification(timerId)
+                alertManager.stopAlert()
 
                 when {
                     rawAction.startsWith(IntervalTimerNotificationHelper.ACTION_INTERVAL_TIMER_DONE) -> {

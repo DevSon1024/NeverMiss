@@ -3,6 +3,10 @@ package com.devson.NeverMiss.viewmodel.intervaltimer
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devson.NeverMiss.core.reminder.interval.IntervalTimerAlertManager
+import com.devson.NeverMiss.core.reminder.interval.IntervalTimerPermissionManager
+import com.devson.NeverMiss.core.reminder.interval.IntervalTimerPermissionsSnapshot
+import com.devson.NeverMiss.core.reminder.interval.PermissionStatus
 import com.devson.NeverMiss.domain.model.IntervalTimer
 import com.devson.NeverMiss.domain.model.IntervalTimerMode
 import com.devson.NeverMiss.domain.model.IntervalTimerStateMachine
@@ -27,12 +31,15 @@ data class IntervalTimerUiState(
     val isLoading: Boolean = true,
     val isEmpty: Boolean = false,
     val errorMessage: String? = null,
-    val filterStatus: IntervalTimerStatus? = null
+    val filterStatus: IntervalTimerStatus? = null,
+    val permissionsSnapshot: IntervalTimerPermissionsSnapshot? = null
 )
 
 @HiltViewModel
 class IntervalTimerViewModel @Inject constructor(
-    private val useCases: IntervalTimerUseCases
+    private val useCases: IntervalTimerUseCases,
+    val permissionManager: IntervalTimerPermissionManager,
+    private val alertManager: IntervalTimerAlertManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(IntervalTimerUiState())
@@ -50,6 +57,16 @@ class IntervalTimerViewModel @Inject constructor(
 
     init {
         observeTimers()
+        refreshPermissions()
+    }
+
+    fun refreshPermissions() {
+        val snapshot = permissionManager.getPermissionsSnapshot()
+        _uiState.update { it.copy(permissionsSnapshot = snapshot) }
+    }
+
+    fun stopActiveAlert() {
+        alertManager.stopAlert()
     }
 
     private fun observeTimers() {
