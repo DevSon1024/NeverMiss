@@ -9,5 +9,11 @@ data class IntervalTimerUseCases @Inject constructor(
     val getTimerById: GetIntervalTimerByIdUseCase,
     val getAllTimers: GetAllIntervalTimersUseCase,
     val getTimersByStatus: GetIntervalTimersByStatusUseCase,
-    val getTimersEligibleForRecovery: GetIntervalTimersEligibleForRecoveryUseCase
+    val getTimersEligibleForRecovery: GetIntervalTimersEligibleForRecoveryUseCase,
+    val startTimer: StartIntervalTimerUseCase,
+    val pauseTimer: PauseIntervalTimerUseCase,
+    val resumeTimer: ResumeIntervalTimerUseCase,
+    val stopTimer: StopIntervalTimerUseCase,
+    val completeTimer: CompleteIntervalTimerUseCase,
+    val advanceOccurrence: AdvanceIntervalTimerOccurrenceUseCase
 )

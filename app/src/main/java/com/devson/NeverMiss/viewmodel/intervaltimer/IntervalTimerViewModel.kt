@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devson.NeverMiss.domain.model.IntervalTimer
 import com.devson.NeverMiss.domain.model.IntervalTimerMode
+import com.devson.NeverMiss.domain.model.IntervalTimerStateMachine
 import com.devson.NeverMiss.domain.model.IntervalTimerStatus
 import com.devson.NeverMiss.domain.usecase.intervaltimer.IntervalTimerUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -164,6 +165,70 @@ class IntervalTimerViewModel @Inject constructor(
                 onResult?.invoke(Result.failure(e))
             }
         }
+    }
+
+    fun startTimer(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.startTimer(timerId)
+        }
+    }
+
+    fun pauseTimer(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.pauseTimer(timerId)
+        }
+    }
+
+    fun resumeTimer(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.resumeTimer(timerId)
+        }
+    }
+
+    fun stopTimer(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.stopTimer(timerId)
+        }
+    }
+
+    fun completeTimer(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.completeTimer(timerId)
+        }
+    }
+
+    fun advanceOccurrence(timerId: Long, onResult: ((Result<Boolean>) -> Unit)? = null) {
+        executeLifecycleAction(onResult) {
+            useCases.advanceOccurrence(timerId)
+        }
+    }
+
+    private fun executeLifecycleAction(
+        onResult: ((Result<Boolean>) -> Unit)?,
+        action: suspend () -> Boolean
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val success = action()
+                if (success) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    onResult?.invoke(Result.success(true))
+                } else {
+                    val err = "Timer not found"
+                    _uiState.update { it.copy(isLoading = false, errorMessage = err) }
+                    onResult?.invoke(Result.failure(IllegalArgumentException(err)))
+                }
+            } catch (e: Exception) {
+                val msg = e.message ?: "Lifecycle action failed"
+                _uiState.update { it.copy(isLoading = false, errorMessage = msg) }
+                onResult?.invoke(Result.failure(e))
+            }
+        }
+    }
+
+    fun getRemainingMillis(timer: IntervalTimer, nowMillis: Long = System.currentTimeMillis()): Long {
+        return IntervalTimerStateMachine.calculateRemainingMillis(timer, nowMillis)
     }
 
     fun setFilterStatus(status: IntervalTimerStatus?) {
