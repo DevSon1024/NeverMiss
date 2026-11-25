@@ -55,6 +55,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToAppStreaks: () -> Unit = {},
     onNavigateToArchive: () -> Unit = {},
+    onNavigateToIntervalTimers: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
 ) {
@@ -89,6 +90,13 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onNavigateToIntervalTimers) {
+                            Icon(
+                                imageVector = Icons.Default.HourglassBottom,
+                                contentDescription = "Interval Timers",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         IconButton(onClick = onNavigateToArchive) {
                             Icon(
                                 imageVector = Icons.Default.Archive,

@@ -43,6 +43,7 @@ sealed class Screen(val route: String) {
     }
     object TrackingDiagnostics : Screen("tracking_diagnostics")
     object Archive : Screen("archive")
+    object IntervalTimers : Screen("interval_timers")
 }
 
 @Composable
@@ -108,6 +109,9 @@ fun NeverMissNavGraph(
                 },
                 onNavigateToArchive = {
                     navController.navigate(Screen.Archive.route)
+                },
+                onNavigateToIntervalTimers = {
+                    navController.navigate(Screen.IntervalTimers.route)
                 }
             )
         }
@@ -312,6 +316,12 @@ fun NeverMissNavGraph(
                 onNavigateToStreakDetail = { id, type ->
                     navController.navigate(Screen.StreakDetail.createRoute(type, id))
                 }
+            )
+        }
+
+        composable(route = Screen.IntervalTimers.route) {
+            com.devson.NeverMiss.ui.screens.intervaltimer.IntervalTimerScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
