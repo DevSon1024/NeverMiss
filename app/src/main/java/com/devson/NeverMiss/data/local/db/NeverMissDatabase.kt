@@ -17,12 +17,14 @@ import com.devson.NeverMiss.data.local.db.apptracking.UsageCheckpointEntity
         TrackedAccountEntity::class,
         AppStreakCompletionEntity::class,
         UsageCheckpointEntity::class,
-        PendingConfirmationEntity::class
+        PendingConfirmationEntity::class,
+        IntervalTimerEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class NeverMissDatabase : RoomDatabase() {
     abstract fun streakDao(): StreakDao
     abstract fun appStreakDao(): AppStreakDao
+    abstract fun intervalTimerDao(): IntervalTimerDao
 }

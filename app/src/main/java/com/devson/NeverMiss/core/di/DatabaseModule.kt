@@ -2,6 +2,7 @@ package com.devson.NeverMiss.core.di
 
 import android.content.Context
 import androidx.room.Room
+import com.devson.NeverMiss.data.local.db.IntervalTimerDao
 import com.devson.NeverMiss.data.local.db.NeverMissDatabase
 import com.devson.NeverMiss.data.local.db.StreakDao
 import com.devson.NeverMiss.data.local.db.apptracking.AppStreakDao
@@ -29,7 +30,8 @@ object DatabaseModule {
         ).addMigrations(
             DatabaseMigrations.MIGRATION_1_2,
             DatabaseMigrations.MIGRATION_2_3,
-            DatabaseMigrations.MIGRATION_3_4
+            DatabaseMigrations.MIGRATION_3_4,
+            DatabaseMigrations.MIGRATION_4_5
         ).build()
     }
 
@@ -43,5 +45,11 @@ object DatabaseModule {
     @Singleton
     fun provideAppStreakDao(database: NeverMissDatabase): AppStreakDao {
         return database.appStreakDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideIntervalTimerDao(database: NeverMissDatabase): IntervalTimerDao {
+        return database.intervalTimerDao()
     }
 }

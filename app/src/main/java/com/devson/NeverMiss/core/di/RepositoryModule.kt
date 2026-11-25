@@ -1,8 +1,10 @@
 package com.devson.NeverMiss.core.di
 
 import com.devson.NeverMiss.data.repository.AppStreakRepositoryImpl
+import com.devson.NeverMiss.data.repository.IntervalTimerRepositoryImpl
 import com.devson.NeverMiss.data.repository.StreakRepositoryImpl
 import com.devson.NeverMiss.domain.repository.AppStreakRepository
+import com.devson.NeverMiss.domain.repository.IntervalTimerRepository
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import dagger.Binds
 import dagger.Module
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindAppStreakRepository(
         repositoryImpl: AppStreakRepositoryImpl
     ): AppStreakRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindIntervalTimerRepository(
+        repositoryImpl: IntervalTimerRepositoryImpl
+    ): IntervalTimerRepository
 }
