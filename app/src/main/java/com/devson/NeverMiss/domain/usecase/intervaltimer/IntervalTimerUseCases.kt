@@ -15,5 +15,6 @@ data class IntervalTimerUseCases @Inject constructor(
     val resumeTimer: ResumeIntervalTimerUseCase,
     val stopTimer: StopIntervalTimerUseCase,
     val completeTimer: CompleteIntervalTimerUseCase,
-    val advanceOccurrence: AdvanceIntervalTimerOccurrenceUseCase
+    val advanceOccurrence: AdvanceIntervalTimerOccurrenceUseCase,
+    val snoozeTimer: SnoozeIntervalTimerUseCase
 )
