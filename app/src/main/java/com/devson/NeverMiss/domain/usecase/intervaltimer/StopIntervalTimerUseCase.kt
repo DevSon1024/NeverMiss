@@ -1,5 +1,6 @@
 package com.devson.NeverMiss.domain.usecase.intervaltimer
 
+import com.devson.NeverMiss.core.reminder.interval.IntervalTimerAlarmScheduler
 import com.devson.NeverMiss.core.util.TimeProvider
 import com.devson.NeverMiss.domain.model.IntervalTimer
 import com.devson.NeverMiss.domain.model.IntervalTimerStateMachine
@@ -9,7 +10,8 @@ import javax.inject.Inject
 
 class StopIntervalTimerUseCase @Inject constructor(
     private val repository: IntervalTimerRepository,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val alarmScheduler: IntervalTimerAlarmScheduler
 ) {
     suspend operator fun invoke(id: Long): Boolean {
         return invoke(id, timeProvider.currentTimeMillis())
@@ -19,10 +21,12 @@ class StopIntervalTimerUseCase @Inject constructor(
         if (id <= 0L) return false
         val existing = repository.getTimerById(id) ?: return false
         if (existing.status == IntervalTimerStatus.STOPPED) {
+            alarmScheduler.cancel(id)
             return true
         }
         val updated = IntervalTimerStateMachine.stop(existing, nowMillis)
         repository.updateTimer(updated)
+        alarmScheduler.cancel(id)
         return true
     }
 
