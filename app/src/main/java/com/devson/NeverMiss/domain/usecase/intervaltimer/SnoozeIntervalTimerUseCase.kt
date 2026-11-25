@@ -1,20 +1,29 @@
 package com.devson.NeverMiss.domain.usecase.intervaltimer
 
 import com.devson.NeverMiss.core.reminder.interval.IntervalTimerAlarmScheduler
+import com.devson.NeverMiss.core.reminder.interval.IntervalTimerSettingsRepository
 import com.devson.NeverMiss.core.util.TimeProvider
 import com.devson.NeverMiss.domain.model.IntervalTimer
 import com.devson.NeverMiss.domain.model.IntervalTimerMode
 import com.devson.NeverMiss.domain.model.IntervalTimerStatus
 import com.devson.NeverMiss.domain.repository.IntervalTimerRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class SnoozeIntervalTimerUseCase @Inject constructor(
     private val repository: IntervalTimerRepository,
     private val timeProvider: TimeProvider,
-    private val alarmScheduler: IntervalTimerAlarmScheduler
+    private val alarmScheduler: IntervalTimerAlarmScheduler,
+    private val settingsRepository: IntervalTimerSettingsRepository
 ) {
-    suspend operator fun invoke(id: Long, snoozeDurationMillis: Long = 5 * 60 * 1000L): Boolean {
-        return invoke(id, timeProvider.currentTimeMillis(), snoozeDurationMillis)
+    suspend operator fun invoke(id: Long, customSnoozeMillis: Long? = null): Boolean {
+        val snoozeMillis = customSnoozeMillis ?: try {
+            val settings = settingsRepository.settingsFlow.first()
+            settings.snoozeDurationMinutes * 60 * 1000L
+        } catch (_: Throwable) {
+            5 * 60 * 1000L
+        }
+        return invoke(id, timeProvider.currentTimeMillis(), snoozeMillis)
     }
 
     suspend operator fun invoke(id: Long, nowMillis: Long, snoozeDurationMillis: Long): Boolean {

@@ -17,7 +17,8 @@ import javax.inject.Singleton
 
 @Singleton
 class IntervalTimerNotificationHelper @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settingsRepository: IntervalTimerSettingsRepository
 ) {
 
     internal var notificationManagerOverride: NotificationManager? = null
@@ -155,8 +156,7 @@ class IntervalTimerNotificationHelper @Inject constructor(
                 )
                 val snoozePendingIntent = createActionPendingIntent(
                     timerId = timer.id,
-                    actionName = ACTION_INTERVAL_TIMER_SNOOZE,
-                    snoozeMillis = 5 * 60 * 1000L
+                    actionName = ACTION_INTERVAL_TIMER_SNOOZE
                 )
                 val stopPendingIntent = createActionPendingIntent(
                     timerId = timer.id,
@@ -170,7 +170,7 @@ class IntervalTimerNotificationHelper @Inject constructor(
                 )
                 builder.addAction(
                     android.R.drawable.ic_menu_recent_history,
-                    "Snooze 5m",
+                    "Snooze",
                     snoozePendingIntent
                 )
                 builder.addAction(

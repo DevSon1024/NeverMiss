@@ -6,6 +6,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -15,13 +16,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class IntervalTimerAlertPlayback @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settingsRepository: IntervalTimerSettingsRepository
 ) {
 
     private var mediaPlayer: MediaPlayer? = null
@@ -33,61 +36,131 @@ class IntervalTimerAlertPlayback @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Main)
 
     @Synchronized
-    fun startAlert(durationMillis: Long = 30_000L) {
+    fun startAlert(customDurationMillis: Long? = null) {
         stopAlert()
 
-        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-
-        // Request audio focus
-        requestAudioFocus()
-
-        // Play alarm ringtone
-        try {
-            val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(context, alertUri)
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                isLooping = true
-                prepare()
-                start()
+        scope.launch {
+            val settings = try {
+                settingsRepository.settingsFlow.first()
+            } catch (_: Throwable) {
+                IntervalTimerSettings()
             }
-        } catch (_: Throwable) {
-            // Fallback or silently degrade if audio subsystem is busy
+
+            val durationMillis = customDurationMillis ?: (settings.alertDurationSeconds * 1000L)
+
+            // Play sound if not silent
+            if (settings.soundOption != AlertSoundOption.SILENT) {
+                val soundUri: Uri? = when (settings.soundOption) {
+                    AlertSoundOption.DEFAULT_ALARM -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    AlertSoundOption.DEFAULT_NOTIFICATION -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    AlertSoundOption.SILENT -> null
+                } ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+                if (soundUri != null) {
+                    audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    requestAudioFocus()
+
+                    try {
+                        mediaPlayer = MediaPlayer().apply {
+                            setDataSource(context, soundUri)
+                            setAudioAttributes(
+                                AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_ALARM)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                    .build()
+                            )
+                            isLooping = true
+                            prepare()
+                            start()
+                        }
+                    } catch (_: Throwable) {
+                        // Fallback safely
+                    }
+                }
+            }
+
+            // Vibrate if enabled
+            if (settings.vibrationEnabled) {
+                try {
+                    vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                        vibratorManager?.defaultVibrator
+                    } else {
+                        @Suppress("DEPRECATION")
+                        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                    }
+
+                    val timings = settings.vibrationPattern.timings
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val amplitudes = IntArray(timings.size) { index -> if (index % 2 == 0) 0 else 255 }
+                        vibrator?.vibrate(VibrationEffect.createWaveform(timings, amplitudes, 0))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator?.vibrate(timings, 0)
+                    }
+                } catch (_: Throwable) {
+                    // Silently degrade if vibration is disabled or hardware missing
+                }
+            }
+
+            // Automatic timeout
+            timeoutJob = scope.launch {
+                delay(durationMillis)
+                stopAlert()
+            }
+        }
+    }
+
+    @Synchronized
+    fun playPreview(soundOption: AlertSoundOption, vibrationPattern: VibrationPatternOption? = null) {
+        stopAlert()
+
+        if (soundOption != AlertSoundOption.SILENT) {
+            val soundUri = when (soundOption) {
+                AlertSoundOption.DEFAULT_ALARM -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                AlertSoundOption.DEFAULT_NOTIFICATION -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                AlertSoundOption.SILENT -> null
+            } ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+            if (soundUri != null) {
+                try {
+                    mediaPlayer = MediaPlayer().apply {
+                        setDataSource(context, soundUri)
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                        isLooping = false
+                        prepare()
+                        start()
+                    }
+                } catch (_: Throwable) {
+                }
+            }
         }
 
-        // Vibrate
-        try {
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                vibratorManager?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        if (vibrationPattern != null) {
+            try {
+                val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                    manager?.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val timings = vibrationPattern.timings
+                    val amplitudes = IntArray(timings.size) { if (it % 2 == 0) 0 else 255 }
+                    vib?.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+                }
+            } catch (_: Throwable) {
             }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val timings = longArrayOf(0, 500, 500, 500)
-                val amplitudes = intArrayOf(0, 255, 0, 255)
-                vibrator?.vibrate(VibrationEffect.createWaveform(timings, amplitudes, 0))
-            } else {
-                @Suppress("DEPRECATION")
-                val pattern = longArrayOf(0, 500, 500, 500)
-                vibrator?.vibrate(pattern, 0)
-            }
-        } catch (_: Throwable) {
-            // Silently degrade if vibration is disabled/denied
         }
 
-        // Safety timeout to automatically stop playback after max duration
         timeoutJob = scope.launch {
-            delay(durationMillis)
+            delay(5_000L) // Preview stops automatically after 5 seconds
             stopAlert()
         }
     }

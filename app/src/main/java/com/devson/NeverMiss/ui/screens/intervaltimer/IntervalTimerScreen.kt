@@ -30,6 +30,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun IntervalTimerScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: IntervalTimerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -79,6 +80,13 @@ fun IntervalTimerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Timer Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = { showCreateDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Add,

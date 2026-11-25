@@ -82,7 +82,7 @@ class IntervalTimerAlertService : Service() {
             }
 
             // 2. Start audio and vibration playback
-            alertPlayback.startAlert(durationMillis = 30_000L)
+            alertPlayback.startAlert(customDurationMillis = 30_000L)
         }
 
         return START_NOT_STICKY

@@ -54,11 +54,12 @@ class IntervalTimerNotificationActionReceiver : BroadcastReceiver() {
                         stopTimerUseCase(timerId)
                     }
                     rawAction.startsWith(IntervalTimerNotificationHelper.ACTION_INTERVAL_TIMER_SNOOZE) -> {
-                        val snoozeMillis = intent.getLongExtra(
-                            IntervalTimerNotificationHelper.EXTRA_SNOOZE_MILLIS,
-                            5 * 60 * 1000L
-                        )
-                        snoozeTimerUseCase(timerId, snoozeDurationMillis = snoozeMillis)
+                        val customSnooze = if (intent.hasExtra(IntervalTimerNotificationHelper.EXTRA_SNOOZE_MILLIS)) {
+                            intent.getLongExtra(IntervalTimerNotificationHelper.EXTRA_SNOOZE_MILLIS, 5 * 60 * 1000L)
+                        } else {
+                            null
+                        }
+                        snoozeTimerUseCase(timerId, customSnoozeMillis = customSnooze)
                     }
                 }
             } catch (_: Throwable) {
