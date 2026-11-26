@@ -19,7 +19,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Colorize
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,28 +28,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.ui.theme.AccentCoral
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
+import com.devson.NeverMiss.ui.theme.StreakColors
 import com.devson.NeverMiss.ui.util.StreakIconHelper
 import com.devson.NeverMiss.viewmodel.CreateStreakViewModel
 import com.devson.NeverMiss.viewmodel.MAX_STREAK_DESCRIPTION_LENGTH
 import com.devson.NeverMiss.viewmodel.MAX_STREAK_TITLE_LENGTH
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-private val WeekDays = listOf(
-    1 to "Mon", 2 to "Tue", 3 to "Wed", 4 to "Thu", 5 to "Fri", 6 to "Sat", 7 to "Sun"
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +61,8 @@ fun CreateStreakScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    var showCustomColorDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(streakId) {
         if (streakId > 0) {
             viewModel.loadStreak(streakId)
@@ -75,12 +75,14 @@ fun CreateStreakScreen(
         }
     }
 
+    val selectedColor = remember(state.color) { Color(state.color) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (streakId > 0) "Edit Streak" else "Create Streak",
+                        text = if (streakId > 0) "Edit Habit" else "New Normal Habit",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -137,7 +139,7 @@ fun CreateStreakScreen(
                     }
                 }
 
-                // SECTION 1: STREAK NAME & CURRENT ICON PREVIEW
+                // SECTION 1: NAME & ICON
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -152,24 +154,22 @@ fun CreateStreakScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Active Icon Avatar Preview
                             Box(
                                 modifier = Modifier
                                     .size(56.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                    .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                    .background(selectedColor.copy(alpha = 0.15f))
+                                    .border(1.5.dp, selectedColor, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = StreakIconHelper.getIcon(state.icon),
                                     contentDescription = "Selected Icon",
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = selectedColor,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
 
-                            // Title Field (Required)
                             OutlinedTextField(
                                 value = state.title,
                                 onValueChange = viewModel::onTitleChange,
@@ -181,7 +181,7 @@ fun CreateStreakScreen(
                                     )
                                 },
                                 singleLine = true,
-                                label = { Text("Streak Name *") },
+                                label = { Text("Name *") },
                                 isError = state.titleError != null,
                                 supportingText = {
                                     Row(
@@ -205,7 +205,7 @@ fun CreateStreakScreen(
                                     imeAction = ImeAction.Next
                                 ),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    focusedBorderColor = selectedColor,
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                                     focusedContainerColor = MaterialTheme.colorScheme.background,
                                     unfocusedContainerColor = MaterialTheme.colorScheme.background,
@@ -217,7 +217,6 @@ fun CreateStreakScreen(
                             )
                         }
 
-                        // SECTION 2: MATERIAL ICON PICKER
                         Text(
                             text = "CHOOSE ICON",
                             fontSize = 11.sp,
@@ -235,18 +234,10 @@ fun CreateStreakScreen(
                                     selected = isSelected,
                                     onClick = { viewModel.onIconChange(item.key) },
                                     shape = RoundedCornerShape(14.dp),
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.background
-                                    },
+                                    color = if (isSelected) selectedColor else MaterialTheme.colorScheme.background,
                                     border = BorderStroke(
                                         width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.outlineVariant
-                                        }
+                                        color = if (isSelected) selectedColor else MaterialTheme.colorScheme.outlineVariant
                                     )
                                 ) {
                                     Column(
@@ -257,20 +248,12 @@ fun CreateStreakScreen(
                                         Icon(
                                             imageVector = item.icon,
                                             contentDescription = item.label,
-                                            tint = if (isSelected) {
-                                                Color.White
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
+                                            tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Text(
                                             text = item.label,
-                                            color = if (isSelected) {
-                                                Color.White
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium
                                         )
@@ -281,7 +264,96 @@ fun CreateStreakScreen(
                     }
                 }
 
-                // SECTION 3: DESCRIPTION / GOAL (OPTIONAL)
+                // SECTION 2: CHOOSE COLOR (PRESETS + CUSTOM HEX PICKER)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "CHOOSE COLOR",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = String.format("#%06X", 0xFFFFFF and state.color),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = selectedColor
+                            )
+                        }
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(StreakColors) { presetColor ->
+                                val presetArgb = presetColor.toArgb()
+                                val isSelected = state.color == presetArgb
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(presetColor)
+                                        .border(
+                                            width = if (isSelected) 2.5.dp else 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.25f),
+                                            shape = CircleShape
+                                        )
+                                        .clickable { viewModel.onColorChange(presetArgb) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            item(key = "custom_color_picker") {
+                                val isCustom = StreakColors.none { it.toArgb() == state.color }
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isCustom) selectedColor else MaterialTheme.colorScheme.background)
+                                        .border(
+                                            width = if (isCustom) 2.5.dp else 1.dp,
+                                            color = if (isCustom) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = CircleShape
+                                        )
+                                        .clickable { showCustomColorDialog = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Colorize,
+                                        contentDescription = "Custom Hex Color",
+                                        tint = if (isCustom) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 3: DESCRIPTION
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -293,7 +365,7 @@ fun CreateStreakScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "DESCRIPTION & PURPOSE (OPTIONAL)",
+                            text = "DESCRIPTION (OPTIONAL)",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -331,7 +403,7 @@ fun CreateStreakScreen(
                                 }
                             ),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedBorderColor = selectedColor,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                                 focusedContainerColor = MaterialTheme.colorScheme.background,
                                 unfocusedContainerColor = MaterialTheme.colorScheme.background,
@@ -343,76 +415,7 @@ fun CreateStreakScreen(
                     }
                 }
 
-                // SECTION 4: INITIAL STREAK HISTORY (ONLY ON CREATION)
-                if (streakId <= 0) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "INITIAL STREAK HISTORY (OPTIONAL)",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Text(
-                                text = "Already maintaining this habit? Enter your current streak count to carry over your existing progress seamlessly without starting from zero.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            OutlinedTextField(
-                                value = state.initialStreak,
-                                onValueChange = viewModel::onInitialStreakChange,
-                                modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Consecutive Days Maintained") },
-                                placeholder = { Text("0", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.History,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                    focusedContainerColor = MaterialTheme.colorScheme.background,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-
-                            val initialCount = state.initialStreak.toIntOrNull() ?: 0
-                            val previewText = if (initialCount > 0) {
-                                "Starts with $initialCount days of history ending yesterday. Completing today will advance it to ${initialCount + 1}."
-                            } else {
-                                "Starts fresh at 0 days. Completing today will set your streak to 1."
-                            }
-
-                            Text(
-                                text = previewText,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (initialCount > 0) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // SECTION 5: SCHEDULE & DAILY REMINDER TIMER
+                // SECTION 4: DAILY REMINDER (TIME CLOCK PICKER ONLY)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -421,87 +424,21 @@ fun CreateStreakScreen(
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "SCHEDULE & DAILY REMINDER",
+                            text = "DAILY REMINDER",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        // Days Selector
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Repeat Schedule",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                FilterChip(
-                                    selected = state.daysOfWeek.isEmpty(),
-                                    onClick = viewModel::setEveryday,
-                                    label = { Text("Everyday") },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                WeekDays.forEach { (dayInt, label) ->
-                                    val isSelected = state.daysOfWeek.contains(dayInt) || state.daysOfWeek.isEmpty()
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isSelected) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.background
-                                                }
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
-                                                CircleShape
-                                            )
-                                            .clickable { viewModel.toggleDayOfWeek(dayInt) },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = label.first().toString(),
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            thickness = 0.5.dp
-                        )
-
-                        // Reminder Time Picker
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                 Icon(
                                     Icons.Default.Schedule,
                                     contentDescription = null,
@@ -510,13 +447,13 @@ fun CreateStreakScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Reminder Alarm",
+                                        text = "Reminder Time",
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Sends daily push notification",
+                                        text = "Runs everyday at your chosen time",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -527,7 +464,7 @@ fun CreateStreakScreen(
                                 try {
                                     val parsed = LocalTime.parse(state.reminderTime)
                                     parsed.format(DateTimeFormatter.ofPattern("hh:mm a"))
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     state.reminderTime
                                 }
                             }
@@ -546,7 +483,7 @@ fun CreateStreakScreen(
                                         false
                                     ).show()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                colors = ButtonDefaults.buttonColors(containerColor = selectedColor),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
@@ -561,7 +498,7 @@ fun CreateStreakScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // SAVE BUTTON WITH LOADING STATE
+                // SAVE BUTTON
                 Button(
                     onClick = {
                         keyboardController?.hide()
@@ -574,8 +511,8 @@ fun CreateStreakScreen(
                         .height(54.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        containerColor = selectedColor,
+                        disabledContainerColor = selectedColor.copy(alpha = 0.6f)
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -587,7 +524,7 @@ fun CreateStreakScreen(
                         )
                     } else {
                         Text(
-                            text = if (streakId > 0) "Save Changes" else "Create Streak",
+                            text = if (streakId > 0) "Save Changes" else "Create Habit",
                             color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
@@ -599,4 +536,109 @@ fun CreateStreakScreen(
             }
         }
     }
+
+    if (showCustomColorDialog) {
+        CustomHexColorPickerDialog(
+            initialColor = state.color,
+            onDismiss = { showCustomColorDialog = false },
+            onColorSelected = { argb ->
+                viewModel.onColorChange(argb)
+                showCustomColorDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun CustomHexColorPickerDialog(
+    initialColor: Int,
+    onDismiss: () -> Unit,
+    onColorSelected: (Int) -> Unit
+) {
+    val initialCompose = Color(initialColor)
+    var red by remember { mutableFloatStateOf(initialCompose.red) }
+    var green by remember { mutableFloatStateOf(initialCompose.green) }
+    var blue by remember { mutableFloatStateOf(initialCompose.blue) }
+    var hexInput by remember { mutableStateOf(String.format("#%06X", 0xFFFFFF and initialColor)) }
+
+    val previewColor = Color(red, green, blue, 1f)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Custom Color Picker", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(previewColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                )
+
+                OutlinedTextField(
+                    value = hexInput,
+                    onValueChange = { raw ->
+                        val cleaned = raw.uppercase().filter { it == '#' || it in '0'..'9' || it in 'A'..'F' }.take(7)
+                        hexInput = cleaned
+                        val hexDigits = cleaned.removePrefix("#")
+                        if (hexDigits.length == 6) {
+                            try {
+                                val parsed = android.graphics.Color.parseColor("#$hexDigits")
+                                val c = Color(parsed)
+                                red = c.red
+                                green = c.green
+                                blue = c.blue
+                            } catch (_: IllegalArgumentException) {
+                            }
+                        }
+                    },
+                    label = { Text("Hex Code (#RRGGBB)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Red: ${(red * 255).toInt()}", style = MaterialTheme.typography.labelSmall)
+                    Slider(
+                        value = red,
+                        onValueChange = {
+                            red = it
+                            hexInput = String.format("#%06X", 0xFFFFFF and Color(red, green, blue, 1f).toArgb())
+                        },
+                        colors = SliderDefaults.colors(thumbColor = Color.Red, activeTrackColor = Color.Red)
+                    )
+                    Text("Green: ${(green * 255).toInt()}", style = MaterialTheme.typography.labelSmall)
+                    Slider(
+                        value = green,
+                        onValueChange = {
+                            green = it
+                            hexInput = String.format("#%06X", 0xFFFFFF and Color(red, green, blue, 1f).toArgb())
+                        },
+                        colors = SliderDefaults.colors(thumbColor = Color(0xFF10B981), activeTrackColor = Color(0xFF10B981))
+                    )
+                    Text("Blue: ${(blue * 255).toInt()}", style = MaterialTheme.typography.labelSmall)
+                    Slider(
+                        value = blue,
+                        onValueChange = {
+                            blue = it
+                            hexInput = String.format("#%06X", 0xFFFFFF and Color(red, green, blue, 1f).toArgb())
+                        },
+                        colors = SliderDefaults.colors(thumbColor = Color(0xFF3B82F6), activeTrackColor = Color(0xFF3B82F6))
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onColorSelected(previewColor.toArgb()) }) {
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

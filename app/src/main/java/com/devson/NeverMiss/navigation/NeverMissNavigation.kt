@@ -63,7 +63,9 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings")
     object AppPicker : Screen("app_picker")
-    object AppStreaksDashboard : Screen("app_streaks")
+    object AppStreaksDashboard : Screen("app_streaks?section={section}") {
+        fun createRoute(section: String = "app") = "app_streaks?section=$section"
+    }
     object AppStreakDetail : Screen("app_streak_detail/{appId}") {
         fun createRoute(appId: Long) = "app_streak_detail/$appId"
     }
@@ -182,10 +184,19 @@ fun NeverMissNavGraph(
                     }
                 },
                 onNavigateToAppStreaks = {
-                    navController.navigate(Screen.AppStreaksDashboard.route) {
+                    navController.navigate(Screen.AppStreaksDashboard.createRoute("app")) {
                         popUpTo(Screen.Home.route) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
+                    }
+                },
+                onNavigateToAppPicker = {
+                    navController.navigate(Screen.AppPicker.route)
+                },
+                onNavigateToStreaksSection = { section ->
+                    navController.navigate(Screen.AppStreaksDashboard.createRoute(section)) {
+                        popUpTo(Screen.Home.route) { saveState = true }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToArchive = {
@@ -271,12 +282,31 @@ fun NeverMissNavGraph(
             )
         }
 
-        composable(route = Screen.AppStreaksDashboard.route) {
+        composable(
+            route = Screen.AppStreaksDashboard.route,
+            arguments = listOf(
+                navArgument("section") {
+                    type = NavType.StringType
+                    defaultValue = "app"
+                }
+            )
+        ) { backStackEntry ->
+            val section = backStackEntry.arguments?.getString("section") ?: "app"
             AppStreakDashboardScreen(
+                initialSection = section,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAppPicker = { navController.navigate(Screen.AppPicker.route) },
                 onNavigateToAppDetail = { appId ->
                     navController.navigate(Screen.StreakDetail.createRoute(StreakType.APP, appId))
+                },
+                onNavigateToNormalDetail = { streakId ->
+                    navController.navigate(Screen.StreakDetail.createRoute(StreakType.NORMAL, streakId))
+                },
+                onNavigateToEditNormal = { streakId ->
+                    navController.navigate(Screen.CreateStreak.createRoute(streakId))
+                },
+                onNavigateToCreateNormal = {
+                    navController.navigate(Screen.CreateStreak.createRoute())
                 },
                 onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) },
                 onNavigateToHome = {
@@ -388,7 +418,12 @@ fun NeverMissNavGraph(
                 currentRoute = currentRoute ?: Screen.Home.route,
                 onNavigateToRoute = { route ->
                     if (route != currentRoute) {
-                        navController.navigate(route) {
+                        val targetRoute = if (route == Screen.AppStreaksDashboard.route) {
+                            Screen.AppStreaksDashboard.createRoute("app")
+                        } else {
+                            route
+                        }
+                        navController.navigate(targetRoute) {
                             popUpTo(Screen.Home.route) { saveState = true }
                             launchSingleTop = true
                             restoreState = true

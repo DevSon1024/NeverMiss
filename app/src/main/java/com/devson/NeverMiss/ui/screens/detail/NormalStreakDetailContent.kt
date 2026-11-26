@@ -151,7 +151,7 @@ fun NormalStreakDetailContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Complete Today",
+                        text = "Mark as Done",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +45,11 @@ import com.devson.NeverMiss.core.util.TrackedAppIcon
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.model.StreakType
+import com.devson.NeverMiss.ui.components.DeleteStreakConfirmDialog
+import com.devson.NeverMiss.ui.components.EditAppStreakNameDialog
+import com.devson.NeverMiss.ui.components.ExpandableStreakFabOverlay
+import com.devson.NeverMiss.ui.components.StreakQuickSettingsSheet
+import com.devson.NeverMiss.ui.components.StreakQuickSettingsTarget
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
 import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
 import com.devson.NeverMiss.ui.theme.AccentCoral
@@ -69,6 +75,8 @@ fun HomeScreen(
     onNavigateToStreakDetail: (Long, StreakType) -> Unit = { _, _ -> },
     onNavigateToSettings: () -> Unit,
     onNavigateToAppStreaks: () -> Unit = {},
+    onNavigateToAppPicker: () -> Unit = onNavigateToAppStreaks,
+    onNavigateToStreaksSection: (String) -> Unit = { onNavigateToAppStreaks() },
     onNavigateToArchive: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
@@ -79,6 +87,7 @@ fun HomeScreen(
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(false) }
     var longPressedTarget by remember { mutableStateOf<LongPressStreakTarget?>(null) }
+    var infoTarget by remember { mutableStateOf<LongPressStreakTarget?>(null) }
     var editingAppTarget by remember { mutableStateOf<Pair<Long, String>?>(null) }
 
     LaunchedEffect(state.actionDialogState.actionError) {
@@ -206,11 +215,14 @@ fun HomeScreen(
                         }
                     }
 
-                    // Section 1: Normal Streaks
+                    // Section 1: Normal Streaks (max 6 on Home)
+                    val visibleNormalStreaks = state.normalStreaks.take(6)
                     item(key = "normal_streaks_heading") {
                         SectionHeader(
                             title = "NORMAL STREAKS",
                             count = state.normalStreaks.size,
+                            showViewMore = state.normalStreaks.size > 6,
+                            onViewMore = { onNavigateToStreaksSection("normal") },
                             modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
@@ -233,7 +245,7 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(
-                                    items = state.normalStreaks,
+                                    items = visibleNormalStreaks,
                                     key = { "normal_grid_${it.id}" }
                                 ) { streak ->
                                     NormalStreakGridCard(
@@ -246,24 +258,28 @@ fun HomeScreen(
                         }
                     } else {
                         items(
-                            items = state.normalStreaks,
+                            items = visibleNormalStreaks,
                             key = { "normal_${it.id}" }
                         ) { streak ->
                             Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                                 NormalStreakCard(
                                     streak = streak,
                                     onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                    onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) }
+                                    onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) },
+                                    onInfoClick = { infoTarget = LongPressStreakTarget.Normal(streak) }
                                 )
                             }
                         }
                     }
 
-                    // Section 2: App Streaks
+                    // Section 2: App Streaks (max 6 on Home)
+                    val visibleAppStreaks = state.appStreaks.take(6)
                     item(key = "app_streaks_heading") {
                         SectionHeader(
                             title = "APP STREAKS",
                             count = state.appStreaks.size,
+                            showViewMore = state.appStreaks.size > 6,
+                            onViewMore = { onNavigateToStreaksSection("app") },
                             modifier = Modifier
                                 .padding(horizontal = 20.dp)
                                 .padding(top = 10.dp)
@@ -288,7 +304,7 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(
-                                    items = state.appStreaks,
+                                    items = visibleAppStreaks,
                                     key = { "app_grid_${it.app.id}" }
                                 ) { appItem ->
                                     AppStreakGridCard(
@@ -301,14 +317,15 @@ fun HomeScreen(
                         }
                     } else {
                         items(
-                            items = state.appStreaks,
+                            items = visibleAppStreaks,
                             key = { "app_${it.app.id}" }
                         ) { appItem ->
                             Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                                 AppStreakCard(
                                     appItem = appItem,
                                     onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) },
-                                    onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) }
+                                    onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) },
+                                    onInfoClick = { infoTarget = LongPressStreakTarget.App(appItem) }
                                 )
                             }
                         }
@@ -317,45 +334,19 @@ fun HomeScreen(
             }
         }
 
-        // Tap-outside scrim rendered BEHIND the ExpandableFabMenu
-        AnimatedVisibility(
-            visible = isFabExpanded,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.45f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        isFabExpanded = false
-                    }
-            )
-        }
-
-        // Expandable FAB Menu rendered ABOVE the scrim so options are always clickable
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 16.dp, bottom = 96.dp)
-        ) {
-            ExpandableFabMenu(
-                isExpanded = isFabExpanded,
-                onToggle = { isFabExpanded = !isFabExpanded },
-                onNormalClick = {
-                    isFabExpanded = false
-                    onNavigateToCreate()
-                },
-                onAppStreakClick = {
-                    isFabExpanded = false
-                    onNavigateToAppStreaks()
-                }
-            )
-        }
+        ExpandableStreakFabOverlay(
+            isExpanded = isFabExpanded,
+            onToggle = { isFabExpanded = !isFabExpanded },
+            onDismiss = { isFabExpanded = false },
+            onNormalClick = {
+                isFabExpanded = false
+                onNavigateToCreate()
+            },
+            onAppStreakClick = {
+                isFabExpanded = false
+                onNavigateToAppPicker()
+            }
+        )
     }
 
     // Long-press Streak Settings Bottom Sheet (matches CommonStreakDetailScreen menu)
@@ -379,150 +370,100 @@ fun HomeScreen(
             is LongPressStreakTarget.App -> target.item.app.isArchived
         }
 
-        ModalBottomSheet(
-            onDismissRequest = { longPressedTarget = null },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = targetName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = if (isNormal) "Habit Streak Settings" else "App Streak Settings",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider()
-
-                StreakSettingSheetItem(
-                    icon = Icons.Default.Edit,
-                    label = "Edit Streak",
-                    onClick = {
-                        longPressedTarget = null
-                        if (isNormal) {
-                            onNavigateToEdit(targetId)
-                        } else {
-                            editingAppTarget = targetId to targetName
-                        }
-                    }
-                )
-                StreakSettingSheetItem(
-                    icon = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                    label = if (isPaused) "Resume Streak" else "Pause Streak",
-                    onClick = {
-                        longPressedTarget = null
-                        viewModel.togglePause(targetType, targetId)
-                    }
-                )
-                StreakSettingSheetItem(
-                    icon = if (isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                    label = if (isArchived) "Restore from Vault" else "Move to Archive",
-                    onClick = {
-                        longPressedTarget = null
-                        viewModel.toggleArchive(targetType, targetId)
-                    }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                StreakSettingSheetItem(
-                    icon = Icons.Default.Delete,
-                    label = "Delete Streak",
-                    tint = AccentCoral,
-                    onClick = {
-                        longPressedTarget = null
-                        viewModel.requestDelete(targetType, targetId)
-                    }
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+        StreakQuickSettingsSheet(
+            target = StreakQuickSettingsTarget(
+                id = targetId,
+                type = targetType,
+                name = targetName,
+                isPaused = isPaused,
+                isArchived = isArchived
+            ),
+            onDismiss = { longPressedTarget = null },
+            onEdit = {
+                longPressedTarget = null
+                if (isNormal) {
+                    onNavigateToEdit(targetId)
+                } else {
+                    editingAppTarget = targetId to targetName
+                }
+            },
+            onTogglePause = {
+                longPressedTarget = null
+                viewModel.togglePause(targetType, targetId)
+            },
+            onToggleArchive = {
+                longPressedTarget = null
+                viewModel.toggleArchive(targetType, targetId)
+            },
+            onDelete = {
+                longPressedTarget = null
+                viewModel.requestDelete(targetType, targetId)
             }
-        }
+        )
     }
 
     // Edit App Streak Dialog
     editingAppTarget?.let { (appId, currentName) ->
-        var appNameText by remember(appId) { mutableStateOf(currentName) }
-        AlertDialog(
-            onDismissRequest = { editingAppTarget = null },
-            title = { Text("Edit App Streak", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Update the display name of this tracked application:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = appNameText,
-                        onValueChange = { appNameText = it },
-                        label = { Text("App Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = appNameText.trim()
-                        if (trimmed.isNotEmpty()) {
-                            viewModel.updateAppName(appId, trimmed)
-                            editingAppTarget = null
-                        }
-                    }
-                ) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingAppTarget = null }) {
-                    Text("Cancel")
-                }
+        EditAppStreakNameDialog(
+            appId = appId,
+            currentName = currentName,
+            onDismiss = { editingAppTarget = null },
+            onSave = { id, newName ->
+                viewModel.updateAppName(id, newName)
+                editingAppTarget = null
             }
         )
     }
 
     // Delete Confirmation Dialog
     if (state.actionDialogState.showDeleteDialog) {
-        val targetName = state.actionDialogState.deletionConfirmation?.name ?: "streak"
-        val recordCount = state.actionDialogState.deletionConfirmation?.affectedRecordCount ?: 0
+        DeleteStreakConfirmDialog(
+            confirmation = state.actionDialogState.deletionConfirmation,
+            onDismiss = viewModel::dismissDeleteDialog,
+            onConfirm = viewModel::confirmDelete
+        )
+    }
+
+    // Info ('i') Dialog for extra streak details
+    infoTarget?.let { target ->
         AlertDialog(
-            onDismissRequest = viewModel::dismissDeleteDialog,
+            onDismissRequest = { infoTarget = null },
             title = {
                 Text(
-                    text = "Delete Streak?",
+                    text = when (target) {
+                        is LongPressStreakTarget.Normal -> target.streak.title
+                        is LongPressStreakTarget.App -> target.item.app.appName
+                    },
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
-                Text(
-                    text = "Are you sure you want to permanently delete \"$targetName\"? This action will remove $recordCount related record(s) and cannot be undone."
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = viewModel::confirmDelete,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text("Delete")
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (target) {
+                        is LongPressStreakTarget.Normal -> {
+                            val s = target.streak
+                            if (s.description.isNotBlank()) {
+                                InfoDetailRow(label = "Description", value = s.description)
+                            }
+                            InfoDetailRow(label = "Current Streak", value = "${s.currentStreak} days")
+                            InfoDetailRow(label = "Longest Streak", value = "${s.longestStreak} days")
+                            InfoDetailRow(label = "Daily Reminder", value = s.reminderTime)
+                            InfoDetailRow(label = "Started", value = s.startDate.ifEmpty { s.creationDate })
+                        }
+                        is LongPressStreakTarget.App -> {
+                            val item = target.item
+                            InfoDetailRow(label = "Package", value = item.app.packageName)
+                            InfoDetailRow(label = "Accounts", value = item.accountSummary)
+                            InfoDetailRow(label = "Completed Today", value = "${item.completedAccountCount}/${item.accountCount}")
+                            InfoDetailRow(label = "Current Streak", value = "${item.displayStreak} days")
+                            InfoDetailRow(label = "Longest Streak", value = "${item.app.longestStreak} days")
+                        }
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissDeleteDialog) {
-                    Text("Cancel")
+            confirmButton = {
+                TextButton(onClick = { infoTarget = null }) {
+                    Text("Close")
                 }
             }
         )
@@ -796,9 +737,28 @@ private fun CornerStreakBadge(
 }
 
 @Composable
+private fun InfoDetailRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
 private fun SectionHeader(
     title: String,
     count: Int,
+    showViewMore: Boolean = false,
+    onViewMore: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -806,26 +766,46 @@ private fun SectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.height(22.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(horizontal = 8.dp)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.height(22.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = "$count",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        if (showViewMore) {
+            TextButton(
+                onClick = onViewMore,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                modifier = Modifier.height(28.dp)
             ) {
                 Text(
-                    text = "$count",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    text = "View More",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
@@ -838,7 +818,8 @@ private fun SectionHeader(
 private fun NormalStreakCard(
     streak: Streak,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onInfoClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val todayStr = StreakCalculator.formatDate(AppClock.now())
@@ -854,6 +835,7 @@ private fun NormalStreakCard(
         CardCompletionStatus.PARTIAL -> WarningAmber.copy(alpha = 0.14f) to WarningAmber.copy(alpha = 0.45f)
         CardCompletionStatus.PAUSED -> MaterialTheme.colorScheme.surfaceVariant to WarningAmber.copy(alpha = 0.35f)
     }
+    val accentColor = Color(streak.color)
 
     Card(
         modifier = Modifier
@@ -873,21 +855,21 @@ private fun NormalStreakCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                modifier = Modifier.size(46.dp)
+                color = accentColor.copy(alpha = 0.14f),
+                modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = StreakIconHelper.getIcon(streak.icon),
                         contentDescription = streak.title,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(26.dp)
+                        tint = accentColor,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -901,16 +883,6 @@ private fun NormalStreakCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
-                if (streak.description.isNotBlank()) {
-                    Text(
-                        text = streak.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -932,21 +904,22 @@ private fun NormalStreakCard(
                 }
             }
 
-            // Completion status badge
             when {
-                streak.isPaused -> {
-                    StatusBadge(text = "Paused", color = WarningAmber)
-                }
-                isDoneToday -> {
-                    StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
-                }
-                else -> {
-                    StatusBadge(
-                        text = "Pending",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        icon = Icons.Default.Schedule
-                    )
-                }
+                streak.isPaused -> StatusBadge(text = "Paused", color = WarningAmber)
+                isDoneToday -> StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
+                else -> StatusBadge(text = "Pending", color = MaterialTheme.colorScheme.onSurfaceVariant, icon = Icons.Default.Schedule)
+            }
+
+            IconButton(
+                onClick = onInfoClick,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = "Streak Info",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -957,7 +930,8 @@ private fun NormalStreakCard(
 private fun AppStreakCard(
     appItem: HomeAppStreakItem,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onInfoClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val app = appItem.app
@@ -986,13 +960,13 @@ private fun AppStreakCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             TrackedAppIcon(
                 packageName = app.packageName,
-                iconSize = 46.dp,
+                iconSize = 44.dp,
                 clipShape = RoundedCornerShape(14.dp)
             )
 
@@ -1006,48 +980,64 @@ private fun AppStreakCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Text(
-                    text = appItem.accountSummary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Whatshot,
-                        contentDescription = null,
-                        tint = SecondaryTeal,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = if (appItem.accountCount > 1) {
-                            "${appItem.accountCount} sub-streaks"
-                        } else {
-                            "${app.currentStreak} day streak"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SecondaryTeal,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = null,
+                            tint = SecondaryTeal,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "${appItem.displayStreak}d",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SecondaryTeal,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "${appItem.accountCount}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
             when {
-                app.isPaused -> {
-                    StatusBadge(text = "Paused", color = WarningAmber)
-                }
-                appItem.isCompletedToday -> {
-                    StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
-                }
-                else -> {
-                    StatusBadge(text = "Active", color = MaterialTheme.colorScheme.primary)
-                }
+                app.isPaused -> StatusBadge(text = "Paused", color = WarningAmber)
+                appItem.isCompletedToday -> StatusBadge(text = "Done Today", color = SecondaryTeal, icon = Icons.Default.Check)
+                else -> StatusBadge(text = "Active", color = MaterialTheme.colorScheme.primary)
+            }
+
+            IconButton(
+                onClick = onInfoClick,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = "App Streak Info",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

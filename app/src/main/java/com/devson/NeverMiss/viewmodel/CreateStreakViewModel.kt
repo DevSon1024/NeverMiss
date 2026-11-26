@@ -181,7 +181,8 @@ class CreateStreakViewModel @Inject constructor(
                         title = cleanTitle,
                         description = currentState.description.trim(),
                         icon = currentState.icon,
-                        daysOfWeek = currentState.daysOfWeek,
+                        color = currentState.color,
+                        daysOfWeek = emptyList(),
                         reminderTime = currentState.reminderTime,
                         updatedAt = System.currentTimeMillis()
                     )
@@ -202,7 +203,7 @@ class CreateStreakViewModel @Inject constructor(
                         creationDate = todayStr,
                         startDate = todayStr,
                         repeatIntervalDays = 1,
-                        daysOfWeek = currentState.daysOfWeek,
+                        daysOfWeek = emptyList(),
                         reminderTime = currentState.reminderTime,
                         currentStreak = 0,
                         longestStreak = 0,
