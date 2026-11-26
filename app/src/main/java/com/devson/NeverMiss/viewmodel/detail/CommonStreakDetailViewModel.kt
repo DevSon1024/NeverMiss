@@ -13,6 +13,10 @@ import com.devson.NeverMiss.domain.repository.AppStreakRepository
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import com.devson.NeverMiss.domain.usecase.LogCompletionUseCase
 import com.devson.NeverMiss.domain.usecase.appstreaks.AddTrackedAccountUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.DeleteTrackedAccountUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.MarkAccountCompletedTodayUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.UndoAccountCompletedTodayUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.UpdateTrackedAccountUseCase
 import com.devson.NeverMiss.domain.usecase.appstreaks.UpdateTrackedAppMetadataUseCase
 import com.devson.NeverMiss.domain.usecase.common.DeleteStreakWithConfirmationUseCase
 import com.devson.NeverMiss.domain.usecase.common.DeletionConfirmation
@@ -56,7 +60,11 @@ class CommonStreakDetailViewModel @Inject constructor(
     private val toggleStreakArchiveUseCase: ToggleStreakArchiveUseCase,
     private val deleteStreakWithConfirmationUseCase: DeleteStreakWithConfirmationUseCase,
     private val addTrackedAccountUseCase: AddTrackedAccountUseCase,
-    private val updateTrackedAppMetadataUseCase: UpdateTrackedAppMetadataUseCase
+    private val updateTrackedAppMetadataUseCase: UpdateTrackedAppMetadataUseCase,
+    private val markAccountCompletedTodayUseCase: MarkAccountCompletedTodayUseCase,
+    private val undoAccountCompletedTodayUseCase: UndoAccountCompletedTodayUseCase,
+    private val updateTrackedAccountUseCase: UpdateTrackedAccountUseCase,
+    private val deleteTrackedAccountUseCase: DeleteTrackedAccountUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CommonStreakDetailState())
@@ -236,6 +244,23 @@ class CommonStreakDetailViewModel @Inject constructor(
         }
     }
 
+    fun undoToday() {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.NORMAL) return
+        if (!_uiState.value.isCompletedToday) return
+
+        viewModelScope.launch {
+            try {
+                val todayStr = StreakCalculator.formatDate(AppClock.now())
+                logCompletionUseCase(current.id, todayStr, null)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to undo completion")
+                }
+            }
+        }
+    }
+
     fun togglePause() {
         val current = _uiState.value.detail ?: return
         viewModelScope.launch {
@@ -332,6 +357,70 @@ class CommonStreakDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(actionError = e.localizedMessage ?: "Failed to update app name")
+                }
+            }
+        }
+    }
+
+    fun markAccountDoneToday(accountId: Long) {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.APP) return
+        viewModelScope.launch {
+            try {
+                markAccountCompletedTodayUseCase(current.id, accountId)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to mark account done")
+                }
+            }
+        }
+    }
+
+    fun undoAccountDoneToday(accountId: Long) {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.APP) return
+        viewModelScope.launch {
+            try {
+                undoAccountCompletedTodayUseCase(current.id, accountId)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to undo account completion")
+                }
+            }
+        }
+    }
+
+    fun renameAccount(accountId: Long, newName: String) {
+        viewModelScope.launch {
+            try {
+                updateTrackedAccountUseCase.renameAccount(accountId, newName)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to rename account")
+                }
+            }
+        }
+    }
+
+    fun toggleAccountEnabled(accountId: Long) {
+        viewModelScope.launch {
+            try {
+                updateTrackedAccountUseCase.toggleAccountEnabled(accountId)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to toggle account")
+                }
+            }
+        }
+    }
+
+    fun deleteAccount(accountId: Long) {
+        viewModelScope.launch {
+            try {
+                deleteTrackedAccountUseCase.deleteById(accountId)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to delete account")
                 }
             }
         }

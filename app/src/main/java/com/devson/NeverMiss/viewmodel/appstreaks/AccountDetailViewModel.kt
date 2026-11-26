@@ -4,13 +4,17 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.calculator.AppStreakCalculator
+import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.model.apptracking.AppStreakCompletion
 import com.devson.NeverMiss.domain.model.apptracking.AppStreakStats
 import com.devson.NeverMiss.domain.model.apptracking.TrackedAccount
 import com.devson.NeverMiss.domain.model.apptracking.TrackedApp
 import com.devson.NeverMiss.domain.repository.AppStreakRepository
 import com.devson.NeverMiss.domain.usecase.appstreaks.DeleteTrackedAccountUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.MarkAccountCompletedTodayUseCase
+import com.devson.NeverMiss.domain.usecase.appstreaks.UndoAccountCompletedTodayUseCase
 import com.devson.NeverMiss.domain.usecase.appstreaks.UpdateTrackedAccountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +34,7 @@ data class AccountDetailUiState(
     val stats: AppStreakStats? = null,
     val completions: List<AppStreakCompletion> = emptyList(),
     val selectedYearMonth: YearMonth = YearMonth.now(),
+    val isCompletedToday: Boolean = false,
     val isAccountDeleted: Boolean = false,
     val showRenameDialog: Boolean = false
 )
@@ -39,7 +44,9 @@ class AccountDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val appStreakRepository: AppStreakRepository,
     private val updateTrackedAccountUseCase: UpdateTrackedAccountUseCase,
-    private val deleteTrackedAccountUseCase: DeleteTrackedAccountUseCase
+    private val deleteTrackedAccountUseCase: DeleteTrackedAccountUseCase,
+    private val markAccountCompletedTodayUseCase: MarkAccountCompletedTodayUseCase,
+    private val undoAccountCompletedTodayUseCase: UndoAccountCompletedTodayUseCase
 ) : ViewModel() {
 
     private var currentAppId: Long = savedStateHandle.get<Long>("appId")
@@ -73,15 +80,36 @@ class AccountDetailViewModel @Inject constructor(
                 null
             }
 
+            val todayStr = StreakCalculator.formatDate(AppClock.now())
+            val isCompletedToday = (account?.lastCompletedDate == todayStr) ||
+                completions.any { it.completionDate == todayStr }
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     account = account,
                     app = app,
                     stats = stats,
-                    completions = completions
+                    completions = completions,
+                    isCompletedToday = isCompletedToday
                 )
             }
+        }
+    }
+
+    fun markDoneToday() {
+        if (currentAppId <= 0 || currentAccountId <= 0) return
+        viewModelScope.launch {
+            markAccountCompletedTodayUseCase(currentAppId, currentAccountId)
+            loadAccount(currentAppId, currentAccountId)
+        }
+    }
+
+    fun undoDoneToday() {
+        if (currentAppId <= 0 || currentAccountId <= 0) return
+        viewModelScope.launch {
+            undoAccountCompletedTodayUseCase(currentAppId, currentAccountId)
+            loadAccount(currentAppId, currentAccountId)
         }
     }
 

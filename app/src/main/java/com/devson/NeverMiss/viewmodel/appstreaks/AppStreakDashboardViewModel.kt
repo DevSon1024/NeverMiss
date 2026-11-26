@@ -85,8 +85,17 @@ class AppStreakDashboardViewModel @Inject constructor(
             ) { apps, normalList, actionState ->
                 val todayStr = StreakCalculator.formatDate(AppClock.now())
                 val summaries = apps.map { app ->
-                    val isCompleted = appStreakRepository.isAppCompletedOnDate(app.id, todayStr)
+                    val appCompletedDirectly = appStreakRepository.isAppCompletedOnDate(app.id, todayStr)
                     val accounts = appStreakRepository.getAccountsForApp(app.id)
+                    val activeAccounts = accounts.filter { it.isEnabled && !it.isArchived }
+                    val completedAccounts = activeAccounts.count { it.lastCompletedDate == todayStr }
+                    val isCompleted = when {
+                        activeAccounts.size > 1 -> completedAccounts >= activeAccounts.size
+                        activeAccounts.size == 1 -> activeAccounts.first().lastCompletedDate == todayStr ||
+                            app.lastCompletedDate == todayStr ||
+                            appCompletedDirectly
+                        else -> app.lastCompletedDate == todayStr || appCompletedDirectly
+                    }
                     TrackedAppSummary(
                         app = app,
                         isCompletedToday = isCompleted,

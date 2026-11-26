@@ -7,7 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devson.NeverMiss.domain.model.SharedStreakDetail
+import com.devson.NeverMiss.ui.components.UndoTodayStreakConfirmDialog
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
 import com.devson.NeverMiss.ui.theme.WarningAmber
 import java.time.YearMonth
@@ -27,9 +28,11 @@ fun NormalStreakDetailContent(
     currentMonth: YearMonth,
     isCompletedToday: Boolean,
     onCompleteToday: () -> Unit,
+    onUndoToday: () -> Unit = {},
     onMonthChange: (YearMonth) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showUndoDialog by remember { mutableStateOf(false) }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -130,6 +133,9 @@ fun NormalStreakDetailContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        TextButton(onClick = { showUndoDialog = true }) {
+                            Text("Undo", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -166,6 +172,17 @@ fun NormalStreakDetailContent(
             missedDates = missedDates,
             currentMonth = currentMonth,
             onMonthChange = onMonthChange
+        )
+    }
+
+    if (showUndoDialog) {
+        UndoTodayStreakConfirmDialog(
+            streakName = detail.name,
+            onDismiss = { showUndoDialog = false },
+            onConfirm = {
+                showUndoDialog = false
+                onUndoToday()
+            }
         )
     }
 }

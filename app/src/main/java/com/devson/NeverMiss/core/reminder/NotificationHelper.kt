@@ -81,6 +81,11 @@ class NotificationHelper @Inject constructor(
             "Snooze 10m",
             snoozeIntent
         )
+        builder.addAction(
+            android.R.drawable.ic_menu_view,
+            "Open App",
+            contentPendingIntent
+        )
 
         notificationManager.notify(streak.id.toInt(), builder.build())
     }

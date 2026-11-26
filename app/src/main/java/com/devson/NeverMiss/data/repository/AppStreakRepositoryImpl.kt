@@ -181,6 +181,11 @@ class AppStreakRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun undoAccountCompletion(appId: Long, accountId: Long, date: String) {
+        appStreakDao.deleteAccountCompletionForDate(accountId, date)
+        appStreakDao.deleteAppCompletionForDate(appId, date)
+    }
+
     // --- Usage Checkpoints ---
 
     override suspend fun getCheckpoint(source: String): UsageCheckpoint? {

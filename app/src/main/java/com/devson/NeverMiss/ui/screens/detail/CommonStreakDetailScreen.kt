@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,6 +78,15 @@ fun CommonStreakDetailScreen(
                 },
                 actions = {
                     detail?.let {
+                        if (it.type == StreakType.APP) {
+                            IconButton(onClick = { showAddAccountDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = "Add Account",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         StreakManagementMenu(
                             detail = it,
                             onTogglePause = viewModel::togglePause,
@@ -183,6 +193,7 @@ fun CommonStreakDetailScreen(
                                 currentMonth = state.currentMonth,
                                 isCompletedToday = state.isCompletedToday,
                                 onCompleteToday = viewModel::completeToday,
+                                onUndoToday = viewModel::undoToday,
                                 onMonthChange = viewModel::changeMonth
                             )
                         } else {
@@ -195,6 +206,11 @@ fun CommonStreakDetailScreen(
                                 onAccountClick = { accountId ->
                                     onNavigateToAccountDetail(detail.id, accountId)
                                 },
+                                onMarkAccountDone = viewModel::markAccountDoneToday,
+                                onUndoAccountDone = viewModel::undoAccountDoneToday,
+                                onRenameAccount = viewModel::renameAccount,
+                                onToggleAccountEnabled = viewModel::toggleAccountEnabled,
+                                onDeleteAccount = viewModel::deleteAccount,
                                 onAddAccountClick = { showAddAccountDialog = true }
                             )
                         }

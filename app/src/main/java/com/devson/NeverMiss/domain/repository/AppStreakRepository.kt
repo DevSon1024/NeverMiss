@@ -55,6 +55,7 @@ interface AppStreakRepository {
         timestamp: Long = System.currentTimeMillis(),
         method: CompletionMethod = CompletionMethod.MANUAL_CONFIRMATION
     ): Boolean
+    suspend fun undoAccountCompletion(appId: Long, accountId: Long, date: String)
 
     // --- Usage Checkpoints ---
     suspend fun getCheckpoint(source: String = UsageCheckpoint.DEFAULT_SOURCE): UsageCheckpoint?

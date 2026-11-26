@@ -379,3 +379,100 @@ fun DeleteStreakConfirmDialog(
         }
     )
 }
+
+@Composable
+fun UndoTodayStreakConfirmDialog(
+    streakName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Undo Today's Streak?",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = "Do you want to undo today's completion for \"$streakName\"?"
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentCoral,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Undo")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountQuickSettingsSheet(
+    accountName: String,
+    isEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onRename: () -> Unit,
+    onToggleEnabled: () -> Unit,
+    onDelete: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = accountName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "Account Settings",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+
+            StreakSheetActionRow(
+                icon = Icons.Default.Edit,
+                label = "Rename Account",
+                onClick = onRename
+            )
+            StreakSheetActionRow(
+                icon = if (isEnabled) Icons.Default.Pause else Icons.Default.PlayArrow,
+                label = if (isEnabled) "Disable Account" else "Enable Account",
+                onClick = onToggleEnabled
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            StreakSheetActionRow(
+                icon = Icons.Default.Delete,
+                label = "Delete Account",
+                tint = AccentCoral,
+                onClick = onDelete
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}

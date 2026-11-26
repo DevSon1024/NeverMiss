@@ -133,6 +133,12 @@ interface AppStreakDao {
     @Update
     suspend fun updatePendingConfirmation(confirmation: PendingConfirmationEntity)
 
+    @Query("DELETE FROM app_streak_completions WHERE accountId = :accountId AND completionDate = :date")
+    suspend fun deleteAccountCompletionForDate(accountId: Long, date: String)
+
+    @Query("DELETE FROM app_streak_completions WHERE trackedAppId = :appId AND accountId IS NULL AND completionDate = :date")
+    suspend fun deleteAppCompletionForDate(appId: Long, date: String)
+
     @Query("UPDATE pending_account_confirmations SET status = 'EXPIRED' WHERE status = 'PENDING' AND expiresAt <= :nowMillis")
     suspend fun expireOldConfirmations(nowMillis: Long = System.currentTimeMillis()): Int
 

@@ -53,9 +53,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.devson.NeverMiss.domain.model.SharedStreakDetail
+import com.devson.NeverMiss.domain.model.StreakCalculator
+import com.devson.NeverMiss.domain.model.StreakStatus
+import com.devson.NeverMiss.domain.model.StreakType
 import com.devson.NeverMiss.domain.model.apptracking.AppStreakCompletion
+import com.devson.NeverMiss.ui.components.AccountQuickSettingsSheet
+import com.devson.NeverMiss.ui.components.UndoTodayStreakConfirmDialog
+import com.devson.NeverMiss.ui.screens.detail.StreakStatisticsSection
 import com.devson.NeverMiss.viewmodel.appstreaks.AccountDetailUiState
 import com.devson.NeverMiss.viewmodel.appstreaks.AccountDetailViewModel
+import java.time.Instant
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,33 +116,6 @@ fun AccountSubStreakScreen(
                             contentDescription = "Options"
                         )
                     }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Rename Account") },
-                            onClick = {
-                                showMenu = false
-                                viewModel.setShowRenameDialog(true)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(if (account?.isEnabled == true) "Disable Account" else "Enable Account") },
-                            onClick = {
-                                showMenu = false
-                                viewModel.toggleTracking()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete Account", color = MaterialTheme.colorScheme.error) },
-                            onClick = {
-                                showMenu = false
-                                showDeleteDialog = true
-                            }
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -161,11 +143,33 @@ fun AccountSubStreakScreen(
                 else -> {
                     AccountDetailContent(
                         state = state,
+                        onMarkDoneToday = viewModel::markDoneToday,
+                        onUndoDoneToday = viewModel::undoDoneToday,
                         onMonthChange = viewModel::changeMonth
                     )
                 }
             }
         }
+    }
+
+    if (showMenu && account != null) {
+        AccountQuickSettingsSheet(
+            accountName = account.accountName,
+            isEnabled = account.isEnabled,
+            onDismiss = { showMenu = false },
+            onRename = {
+                showMenu = false
+                viewModel.setShowRenameDialog(true)
+            },
+            onToggleEnabled = {
+                showMenu = false
+                viewModel.toggleTracking()
+            },
+            onDelete = {
+                showMenu = false
+                showDeleteDialog = true
+            }
+        )
     }
 
     // Rename Dialog
@@ -228,12 +232,16 @@ fun AccountSubStreakScreen(
 @Composable
 private fun AccountDetailContent(
     state: AccountDetailUiState,
+    onMarkDoneToday: () -> Unit,
+    onUndoDoneToday: () -> Unit,
     onMonthChange: (java.time.YearMonth) -> Unit
 ) {
+    val account = state.account
     val stats = state.stats
     val completedDates = remember(state.completions) {
         state.completions.map { it.completionDate }.toSet()
     }
+    var showUndoDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -241,31 +249,96 @@ private fun AccountDetailContent(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (stats != null) {
-            item {
-                Row(
+        item {
+            if (state.isCompletedToday) {
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    shape = RoundedCornerShape(18.dp),
+                    color = com.devson.NeverMiss.ui.theme.SecondaryTeal.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        com.devson.NeverMiss.ui.theme.SecondaryTeal.copy(alpha = 0.4f)
+                    )
                 ) {
-                    AccountStatBox(
-                        title = "Current Streak",
-                        value = "${stats.currentStreak}d",
-                        icon = Icons.Default.Whatshot,
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = com.devson.NeverMiss.ui.theme.SecondaryTeal
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Completed Today!",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "This account's streak is logged for today.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(onClick = { showUndoDialog = true }) {
+                            Text("Undo", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onMarkDoneToday,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-                    AccountStatBox(
-                        title = "Longest Streak",
-                        value = "${stats.longestStreak}d",
-                        icon = Icons.Default.Whatshot,
-                        modifier = Modifier.weight(1f)
-                    )
-                    AccountStatBox(
-                        title = "Total Days",
-                        value = "${stats.totalCompletedDays}d",
-                        icon = Icons.Default.CheckCircle,
-                        modifier = Modifier.weight(1f)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Mark Streak Done",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
                     )
                 }
+            }
+        }
+        if (account != null && stats != null) {
+            item {
+                val createdDateStr = remember(account.createdAt) {
+                    StreakCalculator.formatDate(
+                        Instant.ofEpochMilli(account.createdAt)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                    )
+                }
+                val startDateStr = completedDates.minOrNull() ?: createdDateStr
+                val accountDetail = SharedStreakDetail(
+                    id = account.id,
+                    type = StreakType.APP,
+                    name = account.accountName,
+                    description = state.app?.appName,
+                    icon = null,
+                    emoji = null,
+                    color = null,
+                    currentStreak = stats.currentStreak,
+                    longestStreak = stats.longestStreak,
+                    lastCompletedDate = account.lastCompletedDate,
+                    isPaused = account.isPaused,
+                    isArchived = account.isArchived,
+                    status = if (state.isCompletedToday) StreakStatus.COMPLETED_TODAY else StreakStatus.ACTIVE,
+                    creationDate = createdDateStr,
+                    startDate = startDateStr,
+                    totalCompletedDays = stats.totalCompletedDays,
+                    updatedAt = account.updatedAt
+                )
+                StreakStatisticsSection(detail = accountDetail)
             }
         }
 
@@ -312,6 +385,17 @@ private fun AccountDetailContent(
         item {
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    if (showUndoDialog && account != null) {
+        UndoTodayStreakConfirmDialog(
+            streakName = account.accountName,
+            onDismiss = { showUndoDialog = false },
+            onConfirm = {
+                showUndoDialog = false
+                onUndoDoneToday()
+            }
+        )
     }
 }
 

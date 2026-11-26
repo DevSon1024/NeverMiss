@@ -9,6 +9,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -52,6 +54,7 @@ import com.devson.NeverMiss.ui.util.StreakIconHelper
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardUiState
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardViewModel
 import com.devson.NeverMiss.viewmodel.appstreaks.TrackedAppSummary
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,91 +253,125 @@ private fun DashboardContent(
     onNavigateToCreateNormal: () -> Unit,
     bottomPadding: Dp
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = bottomPadding + 80.dp)
-    ) {
-        item {
+    val pagerState = rememberPagerState(
+        initialPage = if (selectedSection == "normal") 1 else 0,
+        pageCount = { 2 }
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(pagerState.currentPage) {
+        val pageSection = if (pagerState.currentPage == 1) "normal" else "app"
+        if (pageSection != selectedSection) {
+            onSelectSection(pageSection)
+        }
+    }
+
+    LaunchedEffect(selectedSection) {
+        val targetPage = if (selectedSection == "normal") 1 else 0
+        if (pagerState.currentPage != targetPage && !pagerState.isScrollInProgress) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
             SectionSwitcherRow(
                 selectedSection = selectedSection,
                 appCount = state.trackedApps.size,
                 normalCount = state.normalStreaks.size,
-                onSelectSection = onSelectSection
+                onSelectSection = { section ->
+                    onSelectSection(section)
+                    val targetPage = if (section == "normal") 1 else 0
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
             )
         }
 
-        if (selectedSection == "normal") {
-            item {
-                SummaryMetricsRow(
-                    totalTracked = state.normalStreaks.size,
-                    completedToday = state.normalCompletedTodayCount,
-                    highestStreak = state.normalHighestStreak
-                )
-            }
-            if (state.normalStreaks.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onNavigateToCreateNormal),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SelfImprovement,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
-                            )
-                            Text("No Normal Habits Yet", fontWeight = FontWeight.Bold)
-                            Text(
-                                "Tap + to create a daily habit streak.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) { page ->
+            if (page == 0) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = bottomPadding + 80.dp)
+                ) {
+                    if (state.trackedApps.isEmpty()) {
+                        item {
+                            EmptyTrackedAppsCard(onNavigateToPicker = onNavigateToPicker)
+                        }
+                    } else {
+                        items(state.trackedApps, key = { it.app.id }) { summary ->
+                            TrackedAppCard(
+                                summary = summary,
+                                onToggleTracking = { onToggleTracking(summary.app.id) },
+                                onClick = { onAppClick(summary.app.id) },
+                                onLongClick = { onAppLongClick(summary.app) }
                             )
                         }
                     }
                 }
             } else {
-                items(state.normalStreaks, key = { "dash_normal_${it.id}" }) { streak ->
-                    DashboardNormalStreakCard(
-                        streak = streak,
-                        onClick = { onNormalClick(streak.id) },
-                        onLongClick = { onNormalLongClick(streak) }
-                    )
-                }
-            }
-        } else {
-            item {
-                SummaryMetricsRow(
-                    totalTracked = state.totalTracked,
-                    completedToday = state.completedTodayCount,
-                    highestStreak = state.highestStreak
-                )
-            }
-
-            if (state.trackedApps.isEmpty()) {
-                item {
-                    EmptyTrackedAppsCard(onNavigateToPicker = onNavigateToPicker)
-                }
-            } else {
-                items(state.trackedApps, key = { it.app.id }) { summary ->
-                    TrackedAppCard(
-                        summary = summary,
-                        onToggleTracking = { onToggleTracking(summary.app.id) },
-                        onClick = { onAppClick(summary.app.id) },
-                        onLongClick = { onAppLongClick(summary.app) }
-                    )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = bottomPadding + 80.dp)
+                ) {
+                    if (state.normalStreaks.isEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onNavigateToCreateNormal),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SelfImprovement,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Text("No Normal Habits Yet", fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "Tap + to create a daily habit streak.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        items(state.normalStreaks, key = { "dash_normal_${it.id}" }) { streak ->
+                            DashboardNormalStreakCard(
+                                streak = streak,
+                                onClick = { onNormalClick(streak.id) },
+                                onLongClick = { onNormalLongClick(streak) }
+                            )
+                        }
+                    }
                 }
             }
         }
