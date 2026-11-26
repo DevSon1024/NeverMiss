@@ -3,6 +3,7 @@ package com.devson.NeverMiss.core.reminder.interval
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,14 @@ class IntervalTimerAlarmReceiver : BroadcastReceiver() {
         }
 
         val pendingResult = goAsync()
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wakeLock = powerManager?.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "NeverMiss:IntervalTimerAlarmWakeLock"
+        )?.apply {
+            setReferenceCounted(false)
+            acquire(15_000L)
+        }
 
         scope.launch {
             try {
@@ -37,6 +46,12 @@ class IntervalTimerAlarmReceiver : BroadcastReceiver() {
             } catch (_: Throwable) {
                 // Defensive degradation, prevent unhandled exception
             } finally {
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock.release()
+                    }
+                } catch (_: Throwable) {
+                }
                 pendingResult.finish()
             }
         }

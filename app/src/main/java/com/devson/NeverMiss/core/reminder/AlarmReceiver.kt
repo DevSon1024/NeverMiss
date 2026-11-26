@@ -3,6 +3,7 @@ package com.devson.NeverMiss.core.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.repository.StreakRepository
@@ -32,6 +33,14 @@ class AlarmReceiver : BroadcastReceiver() {
         if (streakId == -1L) return
 
         val pendingResult = goAsync()
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wakeLock = powerManager?.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "NeverMiss:StreakAlarmWakeLock"
+        )?.apply {
+            setReferenceCounted(false)
+            acquire(15_000L)
+        }
 
         scope.launch {
             try {
@@ -39,17 +48,26 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (streak != null && !streak.isArchived && !streak.isPaused) {
                     val today = AppClock.now()
                     val todayStr = StreakCalculator.formatDate(today)
-                    
+
                     val isCompleted = streak.lastCompletedDate == todayStr
-                    
+
                     if (!isCompleted) {
                         notificationHelper.showReminderNotification(streak)
                     }
 
-                    // Reschedule next recurrence for tomorrow / next scheduled day
-                    reminderScheduler.scheduleNextAlarm(streakId)
+                    // Reschedule next recurrence with 1-minute buffer to prevent clock-jitter double-fires
+                    reminderScheduler.scheduleNextAlarm(
+                        streakId = streakId,
+                        minBaseDateTime = AppClock.nowDateTime().plusMinutes(1)
+                    )
                 }
             } finally {
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock.release()
+                    }
+                } catch (_: Throwable) {
+                }
                 pendingResult.finish()
             }
         }

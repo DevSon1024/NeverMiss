@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,7 +23,8 @@ enum class PermissionStatus {
 data class IntervalTimerPermissionsSnapshot(
     val notificationStatus: PermissionStatus,
     val exactAlarmStatus: PermissionStatus,
-    val canScheduleExactAlarms: Boolean
+    val canScheduleExactAlarms: Boolean,
+    val batteryOptimizationStatus: PermissionStatus = PermissionStatus.GRANTED
 )
 
 @Singleton
@@ -52,9 +54,20 @@ class IntervalTimerPermissionManager @Inject constructor(
         }
     }
 
+    fun checkBatteryOptimizationStatus(): PermissionStatus {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            ?: return PermissionStatus.NOT_APPLICABLE
+        return if (powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+            PermissionStatus.GRANTED
+        } else {
+            PermissionStatus.DENIED
+        }
+    }
+
     fun getPermissionsSnapshot(): IntervalTimerPermissionsSnapshot {
         val notif = checkNotificationPermission()
         val exact = checkExactAlarmPermission()
+        val battery = checkBatteryOptimizationStatus()
         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             exact == PermissionStatus.GRANTED
         } else {
@@ -63,8 +76,16 @@ class IntervalTimerPermissionManager @Inject constructor(
         return IntervalTimerPermissionsSnapshot(
             notificationStatus = notif,
             exactAlarmStatus = exact,
-            canScheduleExactAlarms = canExact
+            canScheduleExactAlarms = canExact,
+            batteryOptimizationStatus = battery
         )
+    }
+
+    fun createBatteryOptimizationSettingsIntent(): Intent {
+        return Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${context.packageName}")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
     }
 
     fun createNotificationSettingsIntent(): Intent {

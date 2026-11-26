@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import com.devson.NeverMiss.MainActivity
 import com.devson.NeverMiss.domain.model.IntervalTimer
 import com.devson.NeverMiss.domain.model.IntervalTimerStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -68,14 +70,29 @@ class IntervalTimerAlarmSchedulerImpl @Inject constructor(
             ?: return AlarmSchedulingResult.Failure(IllegalStateException("AlarmManager not available"))
 
         val pendingIntent = getPendingIntent(timer.id)
+        val showIntent = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         return try {
             if (canScheduleExactAlarms()) {
-                manager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent
-                )
+                if (showIntent != null) {
+                    manager.setAlarmClock(
+                        AlarmManager.AlarmClockInfo(triggerAtMillis, showIntent),
+                        pendingIntent
+                    )
+                } else {
+                    manager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                    )
+                }
                 AlarmSchedulingResult.Success(isExact = true, triggerAtMillis = triggerAtMillis)
             } else {
                 manager.setAndAllowWhileIdle(

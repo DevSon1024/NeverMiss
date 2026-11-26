@@ -67,11 +67,9 @@ fun HomeScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToStreakDetail: (Long, StreakType) -> Unit = { _, _ -> },
-    onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAppStreaks: () -> Unit = {},
     onNavigateToArchive: () -> Unit = {},
-    onNavigateToIntervalTimers: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
 ) {
@@ -122,13 +120,6 @@ fun HomeScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        IconButton(onClick = onNavigateToIntervalTimers) {
-                            Icon(
-                                imageVector = Icons.Default.HourglassBottom,
-                                contentDescription = "Interval Timers",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                         IconButton(onClick = onNavigateToArchive) {
                             Icon(
                                 imageVector = Icons.Default.Archive,
@@ -164,9 +155,7 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.background
             ) {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(
                         top = 10.dp,
@@ -191,7 +180,9 @@ fun HomeScreen(
                             },
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
@@ -205,11 +196,13 @@ fun HomeScreen(
                     val pendingConfirmations = confirmationState.pendingConfirmations
                     if (pendingConfirmations.isNotEmpty()) {
                         item(key = "pending_confirmation_banner") {
-                            PendingConfirmationBanner(
-                                count = pendingConfirmations.size,
-                                firstAppName = pendingConfirmations.first().app.appName,
-                                onClick = { showConfirmationDialog = true }
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                PendingConfirmationBanner(
+                                    count = pendingConfirmations.size,
+                                    firstAppName = pendingConfirmations.first().app.appName,
+                                    onClick = { showConfirmationDialog = true }
+                                )
+                            }
                         }
                     }
 
@@ -217,22 +210,26 @@ fun HomeScreen(
                     item(key = "normal_streaks_heading") {
                         SectionHeader(
                             title = "NORMAL STREAKS",
-                            count = state.normalStreaks.size
+                            count = state.normalStreaks.size,
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
                     if (state.normalStreaks.isEmpty()) {
                         item(key = "normal_streaks_empty") {
-                            EmptySectionCard(
-                                title = "No Habit Streaks Yet",
-                                message = "Track daily habits like reading, meditating, or exercising. Tap + to begin.",
-                                icon = Icons.Default.SelfImprovement
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                EmptySectionCard(
+                                    title = "No Habit Streaks Yet",
+                                    message = "Track daily habits like reading, meditating, or exercising. Tap + to begin.",
+                                    icon = Icons.Default.SelfImprovement
+                                )
+                            }
                         }
                     } else if (state.isGridLayout) {
                         item(key = "normal_streaks_grid_row") {
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(horizontal = 20.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(
@@ -252,11 +249,13 @@ fun HomeScreen(
                             items = state.normalStreaks,
                             key = { "normal_${it.id}" }
                         ) { streak ->
-                            NormalStreakCard(
-                                streak = streak,
-                                onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
-                                onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) }
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                NormalStreakCard(
+                                    streak = streak,
+                                    onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
+                                    onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) }
+                                )
+                            }
                         }
                     }
 
@@ -265,22 +264,27 @@ fun HomeScreen(
                         SectionHeader(
                             title = "APP STREAKS",
                             count = state.appStreaks.size,
-                            modifier = Modifier.padding(top = 10.dp)
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .padding(top = 10.dp)
                         )
                     }
 
                     if (state.appStreaks.isEmpty()) {
                         item(key = "app_streaks_empty") {
-                            EmptySectionCard(
-                                title = "No App Streaks Tracked",
-                                message = "Track daily active usage and sub-streaks across your installed applications.",
-                                icon = Icons.Default.Apps
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                EmptySectionCard(
+                                    title = "No App Streaks Tracked",
+                                    message = "Track daily active usage and sub-streaks across your installed applications.",
+                                    icon = Icons.Default.Apps
+                                )
+                            }
                         }
                     } else if (state.isGridLayout) {
                         item(key = "app_streaks_grid_row") {
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(horizontal = 20.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(
@@ -300,11 +304,13 @@ fun HomeScreen(
                             items = state.appStreaks,
                             key = { "app_${it.app.id}" }
                         ) { appItem ->
-                            AppStreakCard(
-                                appItem = appItem,
-                                onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) },
-                                onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) }
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                AppStreakCard(
+                                    appItem = appItem,
+                                    onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) },
+                                    onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) }
+                                )
+                            }
                         }
                     }
                 }
@@ -689,6 +695,11 @@ private fun AppStreakGridCard(
                 .fillMaxSize()
                 .padding(10.dp)
         ) {
+            CornerAccountBadge(
+                accountCount = appItem.accountCount,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
+
             CornerStreakBadge(
                 streakCount = appItem.displayStreak,
                 modifier = Modifier.align(Alignment.TopEnd)
@@ -713,6 +724,39 @@ private fun AppStreakGridCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CornerAccountBadge(
+    accountCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(10.dp)
+            )
+            Text(
+                text = "$accountCount",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

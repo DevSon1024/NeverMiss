@@ -67,7 +67,6 @@ fun AppStreakDashboardScreen(
     onNavigateToAppDetail: (Long) -> Unit,
     onNavigateToDiagnostics: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
-    onNavigateToAnalytics: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: AppStreakDashboardViewModel = hiltViewModel()
 ) {

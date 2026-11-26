@@ -39,6 +39,20 @@ fun IntervalTimerScreen(
     var timerToEdit by remember { mutableStateOf<IntervalTimer?>(null) }
     var timerToDelete by remember { mutableStateOf<IntervalTimer?>(null) }
 
+    // Refresh permissions whenever screen resumes (e.g. returning from system Settings / Battery dialog)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPermissions()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     // Live countdown clock ticker: ticks every 1 second when any timer is RUNNING
     var currentNowMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     val hasRunningTimers = remember(uiState.timers) {
@@ -70,15 +84,6 @@ fun IntervalTimerScreen(
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
@@ -98,6 +103,13 @@ fun IntervalTimerScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
+            )
+        },
+        bottomBar = {
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(80.dp)
             )
         },
         floatingActionButton = {
@@ -121,7 +133,8 @@ fun IntervalTimerScreen(
             val context = androidx.compose.ui.platform.LocalContext.current
             if (permissions != null &&
                 (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ||
-                 permissions.exactAlarmStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED)
+                 permissions.exactAlarmStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ||
+                 permissions.batteryOptimizationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED)
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -140,17 +153,20 @@ fun IntervalTimerScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Permission Alert",
+                                text = "Background & Alert Permission",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED) {
-                                    "Notifications are disabled. Timers will run, but visible alerts will be suppressed."
-                                } else {
-                                    "Exact alarms are disabled. Triggers may be slightly delayed by system power saving."
+                                text = when {
+                                    permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ->
+                                        "Notifications are disabled. Timers will run, but visible alerts will be suppressed."
+                                    permissions.exactAlarmStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ->
+                                        "Exact alarms are disabled. Triggers may be delayed by system power saving."
+                                    else ->
+                                        "Battery optimization is restricting background alarms. Set to Unrestricted for on-time alerts."
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
@@ -159,10 +175,13 @@ fun IntervalTimerScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(
                             onClick = {
-                                val intent = if (permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED) {
-                                    viewModel.permissionManager.createNotificationSettingsIntent()
-                                } else {
-                                    viewModel.permissionManager.createExactAlarmSettingsIntent()
+                                val intent = when {
+                                    permissions.notificationStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ->
+                                        viewModel.permissionManager.createNotificationSettingsIntent()
+                                    permissions.exactAlarmStatus == com.devson.NeverMiss.core.reminder.interval.PermissionStatus.DENIED ->
+                                        viewModel.permissionManager.createExactAlarmSettingsIntent()
+                                    else ->
+                                        viewModel.permissionManager.createBatteryOptimizationSettingsIntent()
                                 }
                                 try {
                                     context.startActivity(intent)
@@ -170,7 +189,7 @@ fun IntervalTimerScreen(
                                 }
                             }
                         ) {
-                            Text("Settings")
+                            Text("Fix")
                         }
                     }
                 }

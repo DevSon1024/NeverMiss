@@ -46,7 +46,6 @@ import java.time.LocalDate
 @Composable
 fun SettingsScreen(
     onNavigateToHome: () -> Unit,
-    onNavigateToAnalytics: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToDiagnostics: () -> Unit = {},
     onNavigateToAppStreaks: () -> Unit = {},
@@ -185,6 +184,131 @@ fun SettingsScreen(
                                     checked = state.liquidGlassNavBarEnabled,
                                     onCheckedChange = viewModel::setLiquidGlassNavBar
                                 )
+                            }
+                        }
+                    }
+                }
+
+                // BACKGROUND & RELIABILITY
+                SettingsSectionTitle("BACKGROUND & RELIABILITY")
+                val powerManager = remember(context) {
+                    context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                }
+                val alarmManager = remember(context) {
+                    context.getSystemService(Context.ALARM_SERVICE) as? android.app.AlarmManager
+                }
+                var isIgnoringBattery by remember {
+                    mutableStateOf(powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: true)
+                }
+                var canExactAlarms by remember {
+                    mutableStateOf(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            alarmManager?.canScheduleExactAlarms() ?: false
+                        } else {
+                            true
+                        }
+                    )
+                }
+                val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            isIgnoringBattery = powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+                            canExactAlarms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                alarmManager?.canScheduleExactAlarms() ?: false
+                            } else {
+                                true
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Battery Optimization",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = if (isIgnoringBattery) "Unrestricted (Alarms run on time)" else "Restricted (May block morning & timer alerts)",
+                                    color = if (isIgnoringBattery) SecondaryTeal else AccentCoral,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            if (!isIgnoringBattery) {
+                                TextButton(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                                data = Uri.parse("package:${context.packageName}")
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            try {
+                                                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                                            } catch (_: Exception) {
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text("Allow")
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Exact Alarms & Timers",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = if (canExactAlarms) "Granted (Precise wakeups enabled)" else "Denied (Alarms may be delayed)",
+                                    color = if (canExactAlarms) SecondaryTeal else AccentCoral,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            if (!canExactAlarms && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                TextButton(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                                data = Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                        }
+                                    }
+                                ) {
+                                    Text("Grant")
+                                }
                             }
                         }
                     }

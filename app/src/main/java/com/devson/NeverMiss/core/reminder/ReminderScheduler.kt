@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.devson.NeverMiss.MainActivity
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.Streak
 import com.devson.NeverMiss.domain.model.StreakCalculator
@@ -25,13 +26,20 @@ class ReminderScheduler @Inject constructor(
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     suspend fun scheduleNextAlarm(streakId: Long) {
+        scheduleNextAlarm(streakId, AppClock.nowDateTime())
+    }
+
+    suspend fun scheduleNextAlarm(
+        streakId: Long,
+        minBaseDateTime: LocalDateTime
+    ) {
         val streak = repository.getStreakById(streakId) ?: return
         if (streak.isArchived || streak.isPaused) {
             cancelAlarm(streakId)
             return
         }
 
-        val nextReminderDateTime = calculateNextReminderDateTime(streak)
+        val nextReminderDateTime = calculateNextReminderDateTime(streak, minBaseDateTime)
         if (nextReminderDateTime == null) {
             cancelAlarm(streakId)
             return
@@ -65,23 +73,36 @@ class ReminderScheduler @Inject constructor(
             flags
         )
 
+        val showIntent = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java).apply {
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            flags
+        )
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerAtMillis,
+            val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
+            if (canExact) {
+                if (showIntent != null) {
+                    alarmManager.setAlarmClock(
+                        AlarmManager.AlarmClockInfo(triggerAtMillis, showIntent),
                         pendingIntent
                     )
                 } else {
-                    alarmManager.setAndAllowWhileIdle(
+                    alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
                         triggerAtMillis,
                         pendingIntent
                     )
                 }
             } else {
-                alarmManager.setExactAndAllowWhileIdle(
+                alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent

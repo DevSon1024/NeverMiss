@@ -16,13 +16,13 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -71,7 +71,7 @@ enum class NavDestination(
 ) {
     HOME(Screen.Home.route, "Home", Icons.Filled.Home, Icons.Outlined.Home, "Home"),
     APP_STREAKS(Screen.AppStreaksDashboard.route, "Apps", Icons.Filled.Apps, Icons.Outlined.Apps, "App Streaks"),
-    ANALYTICS(Screen.Analytics.route, "Analytics", Icons.Filled.Analytics, Icons.Outlined.Analytics, "Analytics"),
+    INTERVAL_TIMERS(Screen.IntervalTimers.route, "Timers", Icons.Filled.HourglassBottom, Icons.Outlined.HourglassBottom, "Interval Timers"),
     SETTINGS(Screen.Settings.route, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "Settings")
 }
 
