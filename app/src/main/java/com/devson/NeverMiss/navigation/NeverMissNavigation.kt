@@ -1,17 +1,38 @@
 package com.devson.NeverMiss.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.devson.NeverMiss.domain.model.StreakType
+import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
+import com.devson.NeverMiss.ui.components.NavDestination
 import com.devson.NeverMiss.ui.screens.AnalyticsScreen
 import com.devson.NeverMiss.ui.screens.CreateStreakScreen
 import com.devson.NeverMiss.ui.screens.HomeScreen
@@ -60,36 +81,94 @@ sealed class Screen(val route: String) {
 @Composable
 fun NeverMissNavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Home.route
+    startDestination: String = Screen.Home.route,
+    liquidGlassEnabled: Boolean = false
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        enterTransition = {
-            fadeIn(animationSpec = tween(220)) + slideInHorizontally(
-                initialOffsetX = { fullWidth -> fullWidth / 4 },
-                animationSpec = tween(220)
-            )
-        },
-        exitTransition = {
-            fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
-                targetOffsetX = { fullWidth -> -fullWidth / 4 },
-                animationSpec = tween(180)
-            )
-        },
-        popEnterTransition = {
-            fadeIn(animationSpec = tween(220)) + slideInHorizontally(
-                initialOffsetX = { fullWidth -> -fullWidth / 4 },
-                animationSpec = tween(220)
-            )
-        },
-        popExitTransition = {
-            fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
-                targetOffsetX = { fullWidth -> fullWidth / 4 },
-                animationSpec = tween(180)
-            )
-        }
+    val bottomBarRoutes = remember {
+        NavDestination.entries.map { it.route }.toSet()
+    }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomBar = currentRoute != null && currentRoute in bottomBarRoutes
+
+    val backdropLayer = rememberGraphicsLayer()
+    var containerOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coords ->
+                containerOffsetInRoot = coords.positionInRoot()
+            }
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (showBottomBar && liquidGlassEnabled) {
+                        Modifier.drawWithContent {
+                            backdropLayer.record {
+                                this@drawWithContent.drawContent()
+                            }
+                            drawLayer(backdropLayer)
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
+            NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            enterTransition = {
+                val initialRoute = initialState.destination.route
+                val targetRoute = targetState.destination.route
+                val initialIdx = NavDestination.entries.indexOfFirst { it.route == initialRoute }
+                val targetIdx = NavDestination.entries.indexOfFirst { it.route == targetRoute }
+                if (initialIdx >= 0 && targetIdx >= 0 && initialIdx != targetIdx) {
+                    val direction = if (targetIdx > initialIdx) 1 else -1
+                    fadeIn(animationSpec = tween(260, easing = FastOutSlowInEasing)) + slideInHorizontally(
+                        initialOffsetX = { fullWidth -> direction * (fullWidth / 5) },
+                        animationSpec = tween(260, easing = FastOutSlowInEasing)
+                    )
+                } else {
+                    fadeIn(animationSpec = tween(220)) + slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth / 4 },
+                        animationSpec = tween(220)
+                    )
+                }
+            },
+            exitTransition = {
+                val initialRoute = initialState.destination.route
+                val targetRoute = targetState.destination.route
+                val initialIdx = NavDestination.entries.indexOfFirst { it.route == initialRoute }
+                val targetIdx = NavDestination.entries.indexOfFirst { it.route == targetRoute }
+                if (initialIdx >= 0 && targetIdx >= 0 && initialIdx != targetIdx) {
+                    val direction = if (targetIdx > initialIdx) -1 else 1
+                    fadeOut(animationSpec = tween(220, easing = FastOutSlowInEasing)) + slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> direction * (fullWidth / 5) },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing)
+                    )
+                } else {
+                    fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> -fullWidth / 4 },
+                        animationSpec = tween(180)
+                    )
+                }
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(220)) + slideInHorizontally(
+                    initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                    animationSpec = tween(220)
+                )
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth / 4 },
+                    animationSpec = tween(180)
+                )
+            }
+        ) {
         composable(route = Screen.Home.route) {
             HomeScreen(
                 onNavigateToCreate = { navController.navigate(Screen.CreateStreak.createRoute()) },
@@ -347,6 +426,31 @@ fun NeverMissNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 settingsRepository = entryPoint.intervalTimerSettingsRepository(),
                 alertPlayback = entryPoint.intervalTimerAlertPlayback()
+            )
+        }
+        }
+    }
+
+        AnimatedVisibility(
+            visible = showBottomBar,
+            enter = fadeIn(tween(180)) + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut(tween(150)) + slideOutVertically(targetOffsetY = { it / 2 }),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            FloatingCapsuleNavigationBar(
+                currentRoute = currentRoute ?: Screen.Home.route,
+                onNavigateToRoute = { route ->
+                    if (route != currentRoute) {
+                        navController.navigate(route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                liquidGlassEnabled = liquidGlassEnabled,
+                backdropLayer = if (liquidGlassEnabled) backdropLayer else null,
+                containerOffsetInRoot = containerOffsetInRoot
             )
         }
     }

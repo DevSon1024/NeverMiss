@@ -1,5 +1,6 @@
 package com.devson.NeverMiss.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -8,11 +9,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,25 +29,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.core.util.TrackedAppIcon
 import com.devson.NeverMiss.domain.model.Streak
+import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.model.StreakType
-import com.devson.NeverMiss.navigation.Screen
-import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
 import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
+import com.devson.NeverMiss.ui.theme.AccentCoral
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
+import com.devson.NeverMiss.ui.theme.SuccessGreen
 import com.devson.NeverMiss.ui.theme.WarningAmber
 import com.devson.NeverMiss.ui.util.StreakIconHelper
+import com.devson.NeverMiss.viewmodel.CardCompletionStatus
 import com.devson.NeverMiss.viewmodel.HomeAppStreakItem
 import com.devson.NeverMiss.viewmodel.HomeViewModel
 import com.devson.NeverMiss.viewmodel.appstreaks.AccountConfirmationViewModel
+
+private sealed interface LongPressStreakTarget {
+    data class Normal(val streak: Streak) : LongPressStreakTarget
+    data class App(val item: HomeAppStreakItem) : LongPressStreakTarget
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,9 +77,18 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val confirmationState by confirmationViewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var showConfirmationDialog by remember { mutableStateOf(false) }
-
     var isFabExpanded by remember { mutableStateOf(false) }
+    var longPressedTarget by remember { mutableStateOf<LongPressStreakTarget?>(null) }
+    var editingAppTarget by remember { mutableStateOf<Pair<Long, String>?>(null) }
+
+    LaunchedEffect(state.actionDialogState.actionError) {
+        state.actionDialogState.actionError?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            viewModel.clearActionError()
+        }
+    }
 
     // Intercept back button to close speed-dial FAB when expanded
     BackHandler(enabled = isFabExpanded) {
@@ -90,6 +115,13 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = viewModel::toggleGridLayout) {
+                            Icon(
+                                imageVector = if (state.isGridLayout) Icons.Default.ViewAgenda else Icons.Default.GridView,
+                                contentDescription = if (state.isGridLayout) "Switch to List View" else "Switch to Horizontal Grid",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         IconButton(onClick = onNavigateToIntervalTimers) {
                             Icon(
                                 imageVector = Icons.Default.HourglassBottom,
@@ -118,29 +150,10 @@ fun HomeScreen(
                 )
             },
             bottomBar = {
-                FloatingCapsuleNavigationBar(
-                    currentRoute = Screen.Home.route,
-                    onNavigateToRoute = { route ->
-                        when (route) {
-                            Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
-                            Screen.Analytics.route -> onNavigateToAnalytics()
-                            Screen.Settings.route -> onNavigateToSettings()
-                        }
-                    }
-                )
-            },
-            floatingActionButton = {
-                ExpandableFabMenu(
-                    isExpanded = isFabExpanded,
-                    onToggle = { isFabExpanded = !isFabExpanded },
-                    onNormalClick = {
-                        isFabExpanded = false
-                        onNavigateToCreate()
-                    },
-                    onAppStreakClick = {
-                        isFabExpanded = false
-                        onNavigateToAppStreaks()
-                    }
+                Spacer(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .height(80.dp)
                 )
             }
         ) { innerPadding ->
@@ -216,6 +229,24 @@ fun HomeScreen(
                                 icon = Icons.Default.SelfImprovement
                             )
                         }
+                    } else if (state.isGridLayout) {
+                        item(key = "normal_streaks_grid_row") {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(
+                                    items = state.normalStreaks,
+                                    key = { "normal_grid_${it.id}" }
+                                ) { streak ->
+                                    NormalStreakGridCard(
+                                        streak = streak,
+                                        onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
+                                        onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) }
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         items(
                             items = state.normalStreaks,
@@ -223,7 +254,8 @@ fun HomeScreen(
                         ) { streak ->
                             NormalStreakCard(
                                 streak = streak,
-                                onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) }
+                                onClick = { onNavigateToStreakDetail(streak.id, StreakType.NORMAL) },
+                                onLongClick = { longPressedTarget = LongPressStreakTarget.Normal(streak) }
                             )
                         }
                     }
@@ -245,6 +277,24 @@ fun HomeScreen(
                                 icon = Icons.Default.Apps
                             )
                         }
+                    } else if (state.isGridLayout) {
+                        item(key = "app_streaks_grid_row") {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(
+                                    items = state.appStreaks,
+                                    key = { "app_grid_${it.app.id}" }
+                                ) { appItem ->
+                                    AppStreakGridCard(
+                                        appItem = appItem,
+                                        onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) },
+                                        onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) }
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         items(
                             items = state.appStreaks,
@@ -252,7 +302,8 @@ fun HomeScreen(
                         ) { appItem ->
                             AppStreakCard(
                                 appItem = appItem,
-                                onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) }
+                                onClick = { onNavigateToStreakDetail(appItem.app.id, StreakType.APP) },
+                                onLongClick = { longPressedTarget = LongPressStreakTarget.App(appItem) }
                             )
                         }
                     }
@@ -260,12 +311,16 @@ fun HomeScreen(
             }
         }
 
-        // Tap-outside scrim for speed-dial FAB
-        if (isFabExpanded) {
+        // Tap-outside scrim rendered BEHIND the ExpandableFabMenu
+        AnimatedVisibility(
+            visible = isFabExpanded,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
+                    .background(Color.Black.copy(alpha = 0.45f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -274,6 +329,197 @@ fun HomeScreen(
                     }
             )
         }
+
+        // Expandable FAB Menu rendered ABOVE the scrim so options are always clickable
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 16.dp, bottom = 96.dp)
+        ) {
+            ExpandableFabMenu(
+                isExpanded = isFabExpanded,
+                onToggle = { isFabExpanded = !isFabExpanded },
+                onNormalClick = {
+                    isFabExpanded = false
+                    onNavigateToCreate()
+                },
+                onAppStreakClick = {
+                    isFabExpanded = false
+                    onNavigateToAppStreaks()
+                }
+            )
+        }
+    }
+
+    // Long-press Streak Settings Bottom Sheet (matches CommonStreakDetailScreen menu)
+    longPressedTarget?.let { target ->
+        val isNormal = target is LongPressStreakTarget.Normal
+        val targetId = when (target) {
+            is LongPressStreakTarget.Normal -> target.streak.id
+            is LongPressStreakTarget.App -> target.item.app.id
+        }
+        val targetType = if (isNormal) StreakType.NORMAL else StreakType.APP
+        val targetName = when (target) {
+            is LongPressStreakTarget.Normal -> target.streak.title
+            is LongPressStreakTarget.App -> target.item.app.appName
+        }
+        val isPaused = when (target) {
+            is LongPressStreakTarget.Normal -> target.streak.isPaused
+            is LongPressStreakTarget.App -> target.item.app.isPaused
+        }
+        val isArchived = when (target) {
+            is LongPressStreakTarget.Normal -> target.streak.isArchived
+            is LongPressStreakTarget.App -> target.item.app.isArchived
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { longPressedTarget = null },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = targetName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (isNormal) "Habit Streak Settings" else "App Streak Settings",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+
+                StreakSettingSheetItem(
+                    icon = Icons.Default.Edit,
+                    label = "Edit Streak",
+                    onClick = {
+                        longPressedTarget = null
+                        if (isNormal) {
+                            onNavigateToEdit(targetId)
+                        } else {
+                            editingAppTarget = targetId to targetName
+                        }
+                    }
+                )
+                StreakSettingSheetItem(
+                    icon = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                    label = if (isPaused) "Resume Streak" else "Pause Streak",
+                    onClick = {
+                        longPressedTarget = null
+                        viewModel.togglePause(targetType, targetId)
+                    }
+                )
+                StreakSettingSheetItem(
+                    icon = if (isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                    label = if (isArchived) "Restore from Vault" else "Move to Archive",
+                    onClick = {
+                        longPressedTarget = null
+                        viewModel.toggleArchive(targetType, targetId)
+                    }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                StreakSettingSheetItem(
+                    icon = Icons.Default.Delete,
+                    label = "Delete Streak",
+                    tint = AccentCoral,
+                    onClick = {
+                        longPressedTarget = null
+                        viewModel.requestDelete(targetType, targetId)
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+
+    // Edit App Streak Dialog
+    editingAppTarget?.let { (appId, currentName) ->
+        var appNameText by remember(appId) { mutableStateOf(currentName) }
+        AlertDialog(
+            onDismissRequest = { editingAppTarget = null },
+            title = { Text("Edit App Streak", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Update the display name of this tracked application:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = appNameText,
+                        onValueChange = { appNameText = it },
+                        label = { Text("App Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = appNameText.trim()
+                        if (trimmed.isNotEmpty()) {
+                            viewModel.updateAppName(appId, trimmed)
+                            editingAppTarget = null
+                        }
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingAppTarget = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Delete Confirmation Dialog
+    if (state.actionDialogState.showDeleteDialog) {
+        val targetName = state.actionDialogState.deletionConfirmation?.name ?: "streak"
+        val recordCount = state.actionDialogState.deletionConfirmation?.affectedRecordCount ?: 0
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteDialog,
+            title = {
+                Text(
+                    text = "Delete Streak?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to permanently delete \"$targetName\"? This action will remove $recordCount related record(s) and cannot be undone."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = viewModel::confirmDelete,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteDialog) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Account Confirmation Dialog
@@ -292,6 +538,216 @@ fun HomeScreen(
                 showConfirmationDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun StreakSettingSheetItem(
+    icon: ImageVector,
+    label: String,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = tint
+        )
+    }
+}
+
+@Composable
+private fun gridCardStatusColors(status: CardCompletionStatus): Pair<Color, Color> {
+    return when (status) {
+        CardCompletionStatus.ALL_DONE -> SuccessGreen.copy(alpha = 0.18f) to SuccessGreen.copy(alpha = 0.55f)
+        CardCompletionStatus.PARTIAL -> WarningAmber.copy(alpha = 0.18f) to WarningAmber.copy(alpha = 0.55f)
+        CardCompletionStatus.NONE -> AccentCoral.copy(alpha = 0.14f) to AccentCoral.copy(alpha = 0.45f)
+        CardCompletionStatus.PAUSED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f) to WarningAmber.copy(alpha = 0.4f)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NormalStreakGridCard(
+    streak: Streak,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val todayStr = StreakCalculator.formatDate(AppClock.now())
+    val status = when {
+        streak.isPaused -> CardCompletionStatus.PAUSED
+        streak.lastCompletedDate == todayStr -> CardCompletionStatus.ALL_DONE
+        else -> CardCompletionStatus.NONE
+    }
+    val (containerColor, borderColor) = gridCardStatusColors(status)
+
+    Card(
+        modifier = Modifier
+            .width(114.dp)
+            .height(124.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
+            ),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.2.dp, borderColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp)
+        ) {
+            CornerStreakBadge(
+                streakCount = streak.currentStreak,
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                modifier = Modifier
+                    .size(44.dp)
+                    .align(Alignment.Center)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = StreakIconHelper.getIcon(streak.icon),
+                        contentDescription = streak.title,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = streak.title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AppStreakGridCard(
+    appItem: HomeAppStreakItem,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val app = appItem.app
+    val (containerColor, borderColor) = gridCardStatusColors(appItem.completionStatus)
+
+    Card(
+        modifier = Modifier
+            .width(114.dp)
+            .height(124.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
+            ),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.2.dp, borderColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp)
+        ) {
+            CornerStreakBadge(
+                streakCount = appItem.displayStreak,
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
+
+            Box(modifier = Modifier.align(Alignment.Center)) {
+                TrackedAppIcon(
+                    packageName = app.packageName,
+                    iconSize = 44.dp,
+                    clipShape = RoundedCornerShape(12.dp)
+                )
+            }
+
+            Text(
+                text = app.appName,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CornerStreakBadge(
+    streakCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Whatshot,
+                contentDescription = null,
+                tint = SecondaryTeal,
+                modifier = Modifier.size(10.dp)
+            )
+            Text(
+                text = "$streakCount",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
@@ -333,24 +789,42 @@ private fun SectionHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NormalStreakCard(
     streak: Streak,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    val todayStr = com.devson.NeverMiss.domain.model.StreakCalculator.formatDate(
-        com.devson.NeverMiss.core.util.AppClock.now()
-    )
+    val haptic = LocalHapticFeedback.current
+    val todayStr = StreakCalculator.formatDate(AppClock.now())
     val isDoneToday = streak.lastCompletedDate == todayStr
+    val status = when {
+        streak.isPaused -> CardCompletionStatus.PAUSED
+        isDoneToday -> CardCompletionStatus.ALL_DONE
+        else -> CardCompletionStatus.NONE
+    }
+    val (containerColor, borderColor) = when (status) {
+        CardCompletionStatus.ALL_DONE -> SuccessGreen.copy(alpha = 0.12f) to SuccessGreen.copy(alpha = 0.4f)
+        CardCompletionStatus.NONE -> MaterialTheme.colorScheme.surfaceVariant to AccentCoral.copy(alpha = 0.35f)
+        CardCompletionStatus.PARTIAL -> WarningAmber.copy(alpha = 0.14f) to WarningAmber.copy(alpha = 0.45f)
+        CardCompletionStatus.PAUSED -> MaterialTheme.colorScheme.surfaceVariant to WarningAmber.copy(alpha = 0.35f)
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
+            ),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -434,21 +908,36 @@ private fun NormalStreakCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppStreakCard(
     appItem: HomeAppStreakItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val app = appItem.app
+    val (containerColor, borderColor) = when (appItem.completionStatus) {
+        CardCompletionStatus.ALL_DONE -> SuccessGreen.copy(alpha = 0.12f) to SuccessGreen.copy(alpha = 0.4f)
+        CardCompletionStatus.PARTIAL -> WarningAmber.copy(alpha = 0.14f) to WarningAmber.copy(alpha = 0.45f)
+        CardCompletionStatus.NONE -> MaterialTheme.colorScheme.surfaceVariant to AccentCoral.copy(alpha = 0.35f)
+        CardCompletionStatus.PAUSED -> MaterialTheme.colorScheme.surfaceVariant to WarningAmber.copy(alpha = 0.35f)
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
+            ),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier

@@ -95,6 +95,28 @@ class UserPreferences @Inject constructor(
             preferences[PreferencesKeys.DEV_OVERRIDE_DATE] ?: ""
         }
 
+    val homeGridLayoutFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.HOME_GRID_LAYOUT] ?: false
+        }
+
+    val liquidGlassNavBarFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.LIQUID_GLASS_NAV_BAR] ?: false
+        }
+
     suspend fun setTheme(theme: AppTheme) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME] = theme.name
@@ -131,6 +153,18 @@ class UserPreferences @Inject constructor(
         }
     }
 
+    suspend fun setHomeGridLayout(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HOME_GRID_LAYOUT] = enabled
+        }
+    }
+
+    suspend fun setLiquidGlassNavBar(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LIQUID_GLASS_NAV_BAR] = enabled
+        }
+    }
+
     enum class AppTheme {
         LIGHT, DARK, SYSTEM
     }
@@ -142,5 +176,7 @@ class UserPreferences @Inject constructor(
         val APP_LOCK_PIN = stringPreferencesKey("app_lock_pin")
         val DEV_OVERRIDE_DATE_ENABLED = booleanPreferencesKey("dev_override_date_enabled")
         val DEV_OVERRIDE_DATE = stringPreferencesKey("dev_override_date")
+        val HOME_GRID_LAYOUT = booleanPreferencesKey("home_grid_layout")
+        val LIQUID_GLASS_NAV_BAR = booleanPreferencesKey("liquid_glass_nav_bar")
     }
 }

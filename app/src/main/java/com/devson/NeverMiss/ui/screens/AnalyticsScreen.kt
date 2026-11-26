@@ -41,8 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.core.util.AppClock
-import com.devson.NeverMiss.navigation.Screen
-import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.viewmodel.AnalyticsState
 import com.devson.NeverMiss.viewmodel.AnalyticsViewModel
@@ -75,15 +73,10 @@ fun AnalyticsScreen(
             )
         },
         bottomBar = {
-            FloatingCapsuleNavigationBar(
-                currentRoute = Screen.Analytics.route,
-                onNavigateToRoute = { route ->
-                    when (route) {
-                        Screen.Home.route -> onNavigateToHome()
-                        Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
-                        Screen.Settings.route -> onNavigateToSettings()
-                    }
-                }
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(80.dp)
             )
         }
     ) { innerPadding ->

@@ -35,8 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.data.local.preferences.UserPreferences
-import com.devson.NeverMiss.navigation.Screen
-import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.ui.theme.*
 import com.devson.NeverMiss.viewmodel.SettingsViewModel
 import kotlinx.coroutines.delay
@@ -100,15 +98,10 @@ fun SettingsScreen(
             )
         },
         bottomBar = {
-            FloatingCapsuleNavigationBar(
-                currentRoute = Screen.Settings.route,
-                onNavigateToRoute = { route ->
-                    when (route) {
-                        Screen.Home.route -> onNavigateToHome()
-                        Screen.AppStreaksDashboard.route -> onNavigateToAppStreaks()
-                        Screen.Analytics.route -> onNavigateToAnalytics()
-                    }
-                }
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(80.dp)
             )
         }
     ) { innerPadding ->
@@ -176,6 +169,21 @@ fun SettingsScreen(
                                 Switch(
                                     checked = state.dynamicColorsEnabled,
                                     onCheckedChange = viewModel::setDynamicColors
+                                )
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(0.7f)) {
+                                    Text("Liquid Glass Navigation Bar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("Blur backdrop and semi-transparent glass capsule (disable for solid color)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                }
+                                Switch(
+                                    checked = state.liquidGlassNavBarEnabled,
+                                    onCheckedChange = viewModel::setLiquidGlassNavBar
                                 )
                             }
                         }

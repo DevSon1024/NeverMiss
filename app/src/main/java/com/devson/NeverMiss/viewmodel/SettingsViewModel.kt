@@ -28,6 +28,7 @@ import androidx.compose.runtime.Immutable
 data class SettingsState(
     val theme: UserPreferences.AppTheme = UserPreferences.AppTheme.SYSTEM,
     val dynamicColorsEnabled: Boolean = true,
+    val liquidGlassNavBarEnabled: Boolean = false,
     val snoozeDurationMinutes: Int = 15,
     val appLockPin: String = "",
     val devOverrideDateEnabled: Boolean = false,
@@ -94,6 +95,7 @@ class SettingsViewModel @Inject constructor(
     val state: StateFlow<SettingsState> = combine(
         userPreferences.themeFlow,
         userPreferences.dynamicColorsFlow,
+        userPreferences.liquidGlassNavBarFlow,
         userPreferences.snoozeDurationMinutesFlow,
         userPreferences.appLockPinFlow,
         userPreferences.devOverrideDateEnabledFlow,
@@ -103,17 +105,19 @@ class SettingsViewModel @Inject constructor(
     ) { flowsArray ->
         val theme = flowsArray[0] as UserPreferences.AppTheme
         val dynamicColors = flowsArray[1] as Boolean
-        val snooze = flowsArray[2] as Int
-        val pin = flowsArray[3] as String
-        val devOverrideEnabled = flowsArray[4] as Boolean
-        val devOverrideDate = flowsArray[5] as String
+        val liquidGlassNavBar = flowsArray[2] as Boolean
+        val snooze = flowsArray[3] as Int
+        val pin = flowsArray[4] as String
+        val devOverrideEnabled = flowsArray[5] as Boolean
+        val devOverrideDate = flowsArray[6] as String
         @Suppress("UNCHECKED_CAST")
-        val status = flowsArray[6] as Pair<Boolean?, Boolean?>
-        val err = flowsArray[7] as String?
+        val status = flowsArray[7] as Pair<Boolean?, Boolean?>
+        val err = flowsArray[8] as String?
 
         SettingsState(
             theme = theme,
             dynamicColorsEnabled = dynamicColors,
+            liquidGlassNavBarEnabled = liquidGlassNavBar,
             snoozeDurationMinutes = snooze,
             appLockPin = pin,
             devOverrideDateEnabled = devOverrideEnabled,
@@ -137,6 +141,12 @@ class SettingsViewModel @Inject constructor(
     fun setDynamicColors(enabled: Boolean) {
         viewModelScope.launch {
             userPreferences.setDynamicColors(enabled)
+        }
+    }
+
+    fun setLiquidGlassNavBar(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferences.setLiquidGlassNavBar(enabled)
         }
     }
 

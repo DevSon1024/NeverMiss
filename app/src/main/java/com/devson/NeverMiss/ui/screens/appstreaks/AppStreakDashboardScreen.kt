@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -54,8 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devson.NeverMiss.domain.model.apptracking.TrackedApp
-import com.devson.NeverMiss.navigation.Screen
-import com.devson.NeverMiss.ui.components.FloatingCapsuleNavigationBar
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardUiState
 import com.devson.NeverMiss.viewmodel.appstreaks.AppStreakDashboardViewModel
 import com.devson.NeverMiss.viewmodel.appstreaks.TrackedAppSummary
@@ -115,15 +114,10 @@ fun AppStreakDashboardScreen(
             )
         },
         bottomBar = {
-            FloatingCapsuleNavigationBar(
-                currentRoute = Screen.AppStreaksDashboard.route,
-                onNavigateToRoute = { route ->
-                    when (route) {
-                        Screen.Home.route -> onNavigateToHome()
-                        Screen.Analytics.route -> onNavigateToAnalytics()
-                        Screen.Settings.route -> onNavigateToSettings()
-                    }
-                }
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(80.dp)
             )
         },
         floatingActionButton = {

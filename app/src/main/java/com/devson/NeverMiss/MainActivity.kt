@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeState by userPreferences.themeFlow.collectAsState(initial = UserPreferences.AppTheme.SYSTEM)
             val dynamicColorState by userPreferences.dynamicColorsFlow.collectAsState(initial = true)
+            val liquidGlassNavBarState by userPreferences.liquidGlassNavBarFlow.collectAsState(initial = false)
             val appLockPinState by userPreferences.appLockPinFlow.collectAsState(initial = "")
             val devOverrideEnabledState by userPreferences.devOverrideDateEnabledFlow.collectAsState(initial = false)
             val devOverrideDateState by userPreferences.devOverrideDateFlow.collectAsState(initial = "")
@@ -105,7 +106,10 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        NeverMissNavGraph(navController = navController)
+                        NeverMissNavGraph(
+                            navController = navController,
+                            liquidGlassEnabled = liquidGlassNavBarState
+                        )
                     }
                 }
             }
