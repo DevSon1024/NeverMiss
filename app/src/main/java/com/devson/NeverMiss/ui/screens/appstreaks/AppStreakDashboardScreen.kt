@@ -94,18 +94,10 @@ fun AppStreakDashboardScreen(
                     title = {
                         Text(
                             text = "All Streaks",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
                     },
                     actions = {
                         IconButton(onClick = onNavigateToDiagnostics) {

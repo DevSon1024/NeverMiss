@@ -94,6 +94,15 @@ fun NeverMissNavGraph(
     val backdropLayer = rememberGraphicsLayer()
     var containerOffsetInRoot by remember { mutableStateOf(Offset.Zero) }
 
+    val safePopBackStack: () -> Unit = {
+        val currentState = navController.currentBackStackEntry?.lifecycle?.currentState
+        if (navController.previousBackStackEntry != null &&
+            currentState == androidx.lifecycle.Lifecycle.State.RESUMED
+        ) {
+            navController.popBackStack()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -217,7 +226,7 @@ fun NeverMissNavGraph(
             val streakId = backStackEntry.arguments?.getLong("streakId") ?: -1L
             CreateStreakScreen(
                 streakId = streakId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = safePopBackStack
             )
         }
 
@@ -245,7 +254,7 @@ fun NeverMissNavGraph(
             CommonStreakDetailScreen(
                 type = type,
                 id = id,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 onNavigateToEdit = { editId ->
                     navController.navigate(Screen.CreateStreak.createRoute(editId))
                 },
@@ -271,14 +280,14 @@ fun NeverMissNavGraph(
                         restoreState = true
                     }
                 },
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 onNavigateToDiagnostics = { navController.navigate(Screen.TrackingDiagnostics.route) }
             )
         }
 
         composable(route = Screen.AppPicker.route) {
             InstalledAppPickerScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = safePopBackStack
             )
         }
 
@@ -294,7 +303,7 @@ fun NeverMissNavGraph(
             val section = backStackEntry.arguments?.getString("section") ?: "app"
             AppStreakDashboardScreen(
                 initialSection = section,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 onNavigateToAppPicker = { navController.navigate(Screen.AppPicker.route) },
                 onNavigateToAppDetail = { appId ->
                     navController.navigate(Screen.StreakDetail.createRoute(StreakType.APP, appId))
@@ -367,19 +376,19 @@ fun NeverMissNavGraph(
             AccountSubStreakScreen(
                 appId = appId,
                 accountId = accountId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = safePopBackStack
             )
         }
 
         composable(route = Screen.TrackingDiagnostics.route) {
             TrackingDiagnosticsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = safePopBackStack
             )
         }
 
         composable(route = Screen.Archive.route) {
             ArchiveScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 onNavigateToStreakDetail = { id, type ->
                     navController.navigate(Screen.StreakDetail.createRoute(type, id))
                 }
@@ -388,7 +397,7 @@ fun NeverMissNavGraph(
 
         composable(route = Screen.IntervalTimers.route) {
             com.devson.NeverMiss.ui.screens.intervaltimer.IntervalTimerScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 onNavigateToSettings = { navController.navigate(Screen.IntervalTimerSettings.route) }
             )
         }
@@ -400,7 +409,7 @@ fun NeverMissNavGraph(
                 IntervalTimerSettingsEntryPoint::class.java
             )
             com.devson.NeverMiss.ui.screens.intervaltimer.IntervalTimerSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = safePopBackStack,
                 settingsRepository = entryPoint.intervalTimerSettingsRepository(),
                 alertPlayback = entryPoint.intervalTimerAlertPlayback()
             )
