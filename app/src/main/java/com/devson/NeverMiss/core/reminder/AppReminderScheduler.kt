@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.devson.NeverMiss.MainActivity
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.StreakCalculator
 import com.devson.NeverMiss.domain.model.apptracking.TrackedApp
@@ -63,15 +62,6 @@ class AppReminderScheduler @Inject constructor(
             flags
         )
 
-        val showIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java).apply {
-                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            flags
-        )
-
         try {
             val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
@@ -79,18 +69,11 @@ class AppReminderScheduler @Inject constructor(
                 true
             }
             if (canExact) {
-                if (showIntent != null) {
-                    alarmManager.setAlarmClock(
-                        AlarmManager.AlarmClockInfo(triggerAtMillis, showIntent),
-                        pendingIntent
-                    )
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerAtMillis,
-                        pendingIntent
-                    )
-                }
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+                )
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
