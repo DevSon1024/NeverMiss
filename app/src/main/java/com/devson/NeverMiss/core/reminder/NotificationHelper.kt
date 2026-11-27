@@ -9,6 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.devson.NeverMiss.MainActivity
 import com.devson.NeverMiss.domain.model.Streak
+import com.devson.NeverMiss.domain.model.StreakType
+import com.devson.NeverMiss.domain.model.apptracking.TrackedApp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,8 +47,9 @@ class NotificationHelper @Inject constructor(
 
     fun showReminderNotification(streak: Streak, customMessage: String? = null) {
         val mainActivityIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("STREAK_ID", streak.id)
+            putExtra("STREAK_TYPE", StreakType.NORMAL.name)
         }
 
         val contentPendingIntent = PendingIntent.getActivity(
@@ -67,7 +70,7 @@ class NotificationHelper @Inject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
 
-        // Quick Action Buttons
+        // Quick Action Buttons (Normal Streak opens in NeverMiss on tap, no extra Open App button needed)
         val doneIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_DONE)
         val snoozeIntent = createActionIntent(streak.id, NotificationActionReceiver.ACTION_SNOOZE)
 
@@ -81,13 +84,50 @@ class NotificationHelper @Inject constructor(
             "Snooze 10m",
             snoozeIntent
         )
-        builder.addAction(
-            android.R.drawable.ic_menu_view,
-            "Open App",
-            contentPendingIntent
-        )
 
         notificationManager.notify(streak.id.toInt(), builder.build())
+    }
+
+    fun showAppReminderNotification(app: TrackedApp) {
+        val mainActivityIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("STREAK_ID", app.id)
+            putExtra("STREAK_TYPE", StreakType.APP.name)
+        }
+
+        val contentPendingIntent = PendingIntent.getActivity(
+            context,
+            100_000 + app.id.toInt(),
+            mainActivityIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val launchAppIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        } ?: mainActivityIntent
+
+        val openAppPendingIntent = PendingIntent.getActivity(
+            context,
+            200_000 + app.id.toInt(),
+            launchAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_REMINDERS_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(app.appName)
+            .setContentText("Daily reminder: keep your ${app.appName} streak going!")
+            .setContentIntent(contentPendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .addAction(
+                android.R.drawable.ic_menu_view,
+                "Open App",
+                openAppPendingIntent
+            )
+
+        notificationManager.notify(100_000 + app.id.toInt(), builder.build())
     }
 
     fun cancelNotification(streakId: Long) {

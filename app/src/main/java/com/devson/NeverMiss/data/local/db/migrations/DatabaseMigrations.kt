@@ -182,4 +182,10 @@ object DatabaseMigrations {
             )
         }
     }
+
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tracked_apps` ADD COLUMN `reminderTime` TEXT NOT NULL DEFAULT ''")
+        }
+    }
 }

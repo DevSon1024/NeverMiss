@@ -1,5 +1,6 @@
 package com.devson.NeverMiss
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -46,8 +47,33 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var processAppUsageEventsUseCase: com.devson.NeverMiss.domain.usecase.appstreaks.ProcessAppUsageEventsUseCase
 
+    private val pendingNotificationTarget = mutableStateOf<Pair<Long, com.devson.NeverMiss.domain.model.StreakType>?>(null)
+
+    private fun extractNotificationTarget(intent: Intent?) {
+        val streakId = intent?.getLongExtra("STREAK_ID", -1L) ?: -1L
+        if (streakId > 0L) {
+            val typeName = intent?.getStringExtra("STREAK_TYPE")
+            val streakType = try {
+                if (typeName != null) com.devson.NeverMiss.domain.model.StreakType.valueOf(typeName)
+                else com.devson.NeverMiss.domain.model.StreakType.NORMAL
+            } catch (_: Exception) {
+                com.devson.NeverMiss.domain.model.StreakType.NORMAL
+            }
+            pendingNotificationTarget.value = streakId to streakType
+            intent?.removeExtra("STREAK_ID")
+            intent?.removeExtra("STREAK_TYPE")
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extractNotificationTarget(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        extractNotificationTarget(intent)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT,
@@ -102,6 +128,21 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val navController = rememberNavController()
+                    val notificationTarget by pendingNotificationTarget
+                    LaunchedEffect(notificationTarget) {
+                        val target = notificationTarget
+                        if (target != null) {
+                            navController.navigate(
+                                com.devson.NeverMiss.navigation.Screen.StreakDetail.createRoute(
+                                    target.second,
+                                    target.first
+                                )
+                            ) {
+                                launchSingleTop = true
+                            }
+                            pendingNotificationTarget.value = null
+                        }
+                    }
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background

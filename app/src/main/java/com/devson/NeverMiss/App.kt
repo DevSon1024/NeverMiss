@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.BackoffPolicy
 import com.devson.NeverMiss.core.apptracking.worker.AppTrackingScheduler
+import com.devson.NeverMiss.core.reminder.AppReminderScheduler
 import com.devson.NeverMiss.core.reminder.DailyStreakWorker
 import com.devson.NeverMiss.core.reminder.ReminderScheduler
 import com.devson.NeverMiss.core.reminder.interval.IntervalTimerRecoveryCoordinator
@@ -32,6 +33,9 @@ class App : Application(), Configuration.Provider {
     lateinit var reminderScheduler: ReminderScheduler
 
     @Inject
+    lateinit var appReminderScheduler: AppReminderScheduler
+
+    @Inject
     lateinit var intervalTimerRecoveryCoordinator: IntervalTimerRecoveryCoordinator
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -48,6 +52,7 @@ class App : Application(), Configuration.Provider {
         applicationScope.launch {
             try {
                 reminderScheduler.scheduleAllActiveReminders()
+                appReminderScheduler.scheduleAllActiveAppReminders()
                 intervalTimerRecoveryCoordinator.recoverActiveTimers()
             } catch (_: Throwable) {
             }

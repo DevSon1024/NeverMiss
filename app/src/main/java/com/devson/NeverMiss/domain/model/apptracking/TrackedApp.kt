@@ -19,6 +19,7 @@ data class TrackedApp(
     override val lastCompletedDate: String = "",
     override val isPaused: Boolean = false,
     override val isArchived: Boolean = false,
+    val reminderTime: String = "",
     override val updatedAt: Long = System.currentTimeMillis()
 ) : StreakMetadata {
 

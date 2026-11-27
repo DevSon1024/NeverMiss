@@ -1,5 +1,6 @@
 package com.devson.NeverMiss.ui.screens.detail
 
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
@@ -20,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -35,7 +39,9 @@ import com.devson.NeverMiss.ui.components.AccountQuickSettingsSheet
 import com.devson.NeverMiss.ui.components.UndoTodayStreakConfirmDialog
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
 import com.devson.NeverMiss.ui.theme.SuccessGreen
+import java.time.LocalTime
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppStreakDetailContent(
@@ -43,6 +49,8 @@ fun AppStreakDetailContent(
     completedDates: Set<String>,
     currentMonth: YearMonth,
     accounts: List<TrackedAccount>,
+    reminderTime: String = "",
+    onUpdateReminderTime: (String) -> Unit = {},
     onMonthChange: (YearMonth) -> Unit,
     onAccountClick: (Long) -> Unit,
     onMarkAccountDone: (Long) -> Unit = {},
@@ -94,6 +102,106 @@ fun AppStreakDetailContent(
                     text = "Launch ${detail.name}",
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+        }
+
+        // Daily Reminder Card for App Streak
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = SecondaryTeal
+                    )
+                    Column {
+                        Text(
+                            text = "Daily Reminder",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (reminderTime.isNotBlank()) "Everyday with Open App action" else "Off (tap to set time)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val formattedTime = remember(reminderTime) {
+                        if (reminderTime.isBlank()) {
+                            "Set Time"
+                        } else {
+                            try {
+                                LocalTime.parse(reminderTime).format(DateTimeFormatter.ofPattern("hh:mm a"))
+                            } catch (_: Exception) {
+                                reminderTime
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            val parts = reminderTime.split(":")
+                            val currentHour = parts.firstOrNull()?.toIntOrNull() ?: 10
+                            val currentMin = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    onUpdateReminderTime(String.format("%02d:%02d", hour, minute))
+                                },
+                                currentHour,
+                                currentMin,
+                                false
+                            ).show()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = formattedTime,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    if (reminderTime.isNotBlank()) {
+                        IconButton(
+                            onClick = { onUpdateReminderTime("") },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear Reminder",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 

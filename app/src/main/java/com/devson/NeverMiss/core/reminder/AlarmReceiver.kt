@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.PowerManager
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.StreakCalculator
+import com.devson.NeverMiss.domain.repository.AppStreakRepository
 import com.devson.NeverMiss.domain.repository.StreakRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -21,16 +22,23 @@ class AlarmReceiver : BroadcastReceiver() {
     lateinit var repository: StreakRepository
 
     @Inject
+    lateinit var appStreakRepository: AppStreakRepository
+
+    @Inject
     lateinit var notificationHelper: NotificationHelper
 
     @Inject
     lateinit var reminderScheduler: ReminderScheduler
 
+    @Inject
+    lateinit var appReminderScheduler: AppReminderScheduler
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
         val streakId = intent.getLongExtra("STREAK_ID", -1L)
-        if (streakId == -1L) return
+        val appId = intent.getLongExtra("APP_ID", -1L)
+        if (streakId == -1L && appId == -1L) return
 
         val pendingResult = goAsync()
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -44,22 +52,40 @@ class AlarmReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                val streak = repository.getStreakById(streakId)
-                if (streak != null && !streak.isArchived && !streak.isPaused) {
-                    val today = AppClock.now()
-                    val todayStr = StreakCalculator.formatDate(today)
+                val todayStr = StreakCalculator.formatDate(AppClock.now())
 
-                    val isCompleted = streak.lastCompletedDate == todayStr
-
-                    if (!isCompleted) {
-                        notificationHelper.showReminderNotification(streak)
+                if (streakId > 0L) {
+                    val streak = repository.getStreakById(streakId)
+                    if (streak != null && !streak.isArchived && !streak.isPaused) {
+                        val isCompleted = streak.lastCompletedDate == todayStr
+                        if (!isCompleted) {
+                            notificationHelper.showReminderNotification(streak)
+                        }
+                        reminderScheduler.scheduleNextAlarm(
+                            streakId = streakId,
+                            minBaseDateTime = AppClock.nowDateTime().plusMinutes(1)
+                        )
                     }
+                }
 
-                    // Reschedule next recurrence with 1-minute buffer to prevent clock-jitter double-fires
-                    reminderScheduler.scheduleNextAlarm(
-                        streakId = streakId,
-                        minBaseDateTime = AppClock.nowDateTime().plusMinutes(1)
-                    )
+                if (appId > 0L) {
+                    val app = appStreakRepository.getTrackedAppById(appId)
+                    if (app != null && !app.isArchived && !app.isPaused && app.isEnabled && app.reminderTime.isNotBlank()) {
+                        val accounts = appStreakRepository.getAccountsForApp(appId)
+                        val activeAccounts = accounts.filter { it.isEnabled && !it.isArchived }
+                        val isCompletedToday = when {
+                            activeAccounts.size > 1 -> activeAccounts.count { it.lastCompletedDate == todayStr } >= activeAccounts.size
+                            activeAccounts.size == 1 -> activeAccounts.first().lastCompletedDate == todayStr || app.lastCompletedDate == todayStr
+                            else -> app.lastCompletedDate == todayStr
+                        }
+                        if (!isCompletedToday) {
+                            notificationHelper.showAppReminderNotification(app)
+                        }
+                        appReminderScheduler.scheduleNextAppAlarm(
+                            appId = appId,
+                            minBaseDateTime = AppClock.nowDateTime().plusMinutes(1)
+                        )
+                    }
                 }
             } finally {
                 try {

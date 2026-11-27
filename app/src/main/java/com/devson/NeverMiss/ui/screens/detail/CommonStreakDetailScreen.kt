@@ -202,6 +202,8 @@ fun CommonStreakDetailScreen(
                                 completedDates = state.completedDates,
                                 currentMonth = state.currentMonth,
                                 accounts = state.accounts,
+                                reminderTime = state.appReminderTime,
+                                onUpdateReminderTime = viewModel::updateAppReminderTime,
                                 onMonthChange = viewModel::changeMonth,
                                 onAccountClick = { accountId ->
                                     onNavigateToAccountDetail(detail.id, accountId)

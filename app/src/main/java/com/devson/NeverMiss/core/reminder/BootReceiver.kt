@@ -21,6 +21,9 @@ class BootReceiver : BroadcastReceiver() {
     lateinit var reminderScheduler: ReminderScheduler
 
     @Inject
+    lateinit var appReminderScheduler: AppReminderScheduler
+
+    @Inject
     lateinit var appTrackingScheduler: AppTrackingScheduler
 
     @Inject
@@ -48,6 +51,7 @@ class BootReceiver : BroadcastReceiver() {
                 try {
                     // 1. Existing streak reminders & app tracking reconciliation
                     reminderScheduler.scheduleAllActiveReminders()
+                    appReminderScheduler.scheduleAllActiveAppReminders()
                     appTrackingScheduler.schedulePeriodicReconciliation()
 
                     // 2. Interval timer recovery (only when device storage is unlocked, avoiding Direct Boot crashes)

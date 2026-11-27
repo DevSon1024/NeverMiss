@@ -3,6 +3,7 @@ package com.devson.NeverMiss.viewmodel.detail
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devson.NeverMiss.core.reminder.AppReminderScheduler
 import com.devson.NeverMiss.core.util.AppClock
 import com.devson.NeverMiss.domain.model.CompletionStatus
 import com.devson.NeverMiss.domain.model.SharedStreakDetail
@@ -43,6 +44,7 @@ data class CommonStreakDetailState(
     val missedDates: Set<String> = emptySet(),
     val currentMonth: YearMonth = YearMonth.now(),
     val accounts: List<TrackedAccount> = emptyList(),
+    val appReminderTime: String = "",
     val isCompletedToday: Boolean = false,
     val isLoading: Boolean = true,
     val isDeleted: Boolean = false,
@@ -64,7 +66,8 @@ class CommonStreakDetailViewModel @Inject constructor(
     private val markAccountCompletedTodayUseCase: MarkAccountCompletedTodayUseCase,
     private val undoAccountCompletedTodayUseCase: UndoAccountCompletedTodayUseCase,
     private val updateTrackedAccountUseCase: UpdateTrackedAccountUseCase,
-    private val deleteTrackedAccountUseCase: DeleteTrackedAccountUseCase
+    private val deleteTrackedAccountUseCase: DeleteTrackedAccountUseCase,
+    private val appReminderScheduler: AppReminderScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CommonStreakDetailState())
@@ -217,6 +220,7 @@ class CommonStreakDetailViewModel @Inject constructor(
                             completedDates = completedDates,
                             missedDates = emptySet(),
                             accounts = accounts,
+                            appReminderTime = app.reminderTime,
                             isCompletedToday = isCompletedToday,
                             isLoading = false
                         )
@@ -421,6 +425,25 @@ class CommonStreakDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(actionError = e.localizedMessage ?: "Failed to delete account")
+                }
+            }
+        }
+    }
+
+    fun updateAppReminderTime(reminderTime: String) {
+        val current = _uiState.value.detail ?: return
+        if (current.type != StreakType.APP) return
+        viewModelScope.launch {
+            try {
+                updateTrackedAppMetadataUseCase.updateReminderTime(current.id, reminderTime)
+                if (reminderTime.isBlank()) {
+                    appReminderScheduler.cancelAppAlarm(current.id)
+                } else {
+                    appReminderScheduler.scheduleNextAppAlarm(current.id)
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(actionError = e.localizedMessage ?: "Failed to update reminder time")
                 }
             }
         }

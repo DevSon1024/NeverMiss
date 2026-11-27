@@ -40,4 +40,15 @@ class UpdateTrackedAppMetadataUseCase @Inject constructor(
         )
         return true
     }
+
+    suspend fun updateReminderTime(appId: Long, reminderTime: String): Boolean {
+        val app = appStreakRepository.getTrackedAppById(appId) ?: return false
+        appStreakRepository.updateTrackedApp(
+            app.copy(
+                reminderTime = reminderTime.trim(),
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        return true
+    }
 }

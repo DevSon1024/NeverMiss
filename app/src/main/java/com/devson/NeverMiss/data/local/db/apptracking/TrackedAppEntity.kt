@@ -22,6 +22,7 @@ data class TrackedAppEntity(
     val lastCompletedDate: String = "",
     val isPaused: Boolean = false,
     val isArchived: Boolean = false,
+    val reminderTime: String = "",
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): TrackedApp = TrackedApp(
@@ -35,6 +36,7 @@ data class TrackedAppEntity(
         lastCompletedDate = lastCompletedDate,
         isPaused = isPaused,
         isArchived = isArchived,
+        reminderTime = reminderTime,
         updatedAt = updatedAt
     )
 
@@ -50,6 +52,7 @@ data class TrackedAppEntity(
             lastCompletedDate = domain.lastCompletedDate,
             isPaused = domain.isPaused,
             isArchived = domain.isArchived,
+            reminderTime = domain.reminderTime,
             updatedAt = domain.updatedAt
         )
     }
