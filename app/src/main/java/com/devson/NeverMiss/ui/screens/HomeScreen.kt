@@ -50,8 +50,6 @@ import com.devson.NeverMiss.ui.components.EditAppStreakNameDialog
 import com.devson.NeverMiss.ui.components.ExpandableStreakFabOverlay
 import com.devson.NeverMiss.ui.components.StreakQuickSettingsSheet
 import com.devson.NeverMiss.ui.components.StreakQuickSettingsTarget
-import com.devson.NeverMiss.ui.screens.appstreaks.AccountConfirmationDialog
-import com.devson.NeverMiss.ui.screens.appstreaks.PendingConfirmationBanner
 import com.devson.NeverMiss.ui.theme.AccentCoral
 import com.devson.NeverMiss.ui.theme.SecondaryTeal
 import com.devson.NeverMiss.ui.theme.SuccessGreen
@@ -60,7 +58,6 @@ import com.devson.NeverMiss.ui.util.StreakIconHelper
 import com.devson.NeverMiss.viewmodel.CardCompletionStatus
 import com.devson.NeverMiss.viewmodel.HomeAppStreakItem
 import com.devson.NeverMiss.viewmodel.HomeViewModel
-import com.devson.NeverMiss.viewmodel.appstreaks.AccountConfirmationViewModel
 
 private sealed interface LongPressStreakTarget {
     data class Normal(val streak: Streak) : LongPressStreakTarget
@@ -78,13 +75,10 @@ fun HomeScreen(
     onNavigateToAppPicker: () -> Unit = onNavigateToAppStreaks,
     onNavigateToStreaksSection: (String) -> Unit = { onNavigateToAppStreaks() },
     onNavigateToArchive: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel(),
-    confirmationViewModel: AccountConfirmationViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val confirmationState by confirmationViewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var showConfirmationDialog by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(false) }
     var longPressedTarget by remember { mutableStateOf<LongPressStreakTarget?>(null) }
     var infoTarget by remember { mutableStateOf<LongPressStreakTarget?>(null) }
@@ -192,20 +186,6 @@ fun HomeScreen(
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                             )
                         )
-                    }
-
-                    // Pending Confirmation Banner
-                    val pendingConfirmations = confirmationState.pendingConfirmations
-                    if (pendingConfirmations.isNotEmpty()) {
-                        item(key = "pending_confirmation_banner") {
-                            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                                PendingConfirmationBanner(
-                                    count = pendingConfirmations.size,
-                                    firstAppName = pendingConfirmations.first().app.appName,
-                                    onClick = { showConfirmationDialog = true }
-                                )
-                            }
-                        }
                     }
 
                     // Section 1: Normal Streaks (max 6 on Home)
@@ -458,24 +438,6 @@ fun HomeScreen(
                 TextButton(onClick = { infoTarget = null }) {
                     Text("Close")
                 }
-            }
-        )
-    }
-
-    // Account Confirmation Dialog
-    if (showConfirmationDialog && confirmationState.activeConfirmation != null) {
-        AccountConfirmationDialog(
-            confirmationDetails = confirmationState.activeConfirmation,
-            selectedAccountIds = confirmationState.selectedAccountIds,
-            isProcessing = confirmationState.isProcessing,
-            onToggleAccount = confirmationViewModel::toggleAccountSelection,
-            onConfirm = {
-                confirmationViewModel.confirmCurrentSelection()
-                showConfirmationDialog = false
-            },
-            onDismiss = {
-                confirmationViewModel.dismissCurrent()
-                showConfirmationDialog = false
             }
         )
     }
